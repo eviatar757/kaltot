@@ -1,0 +1,1799 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>קלטות מהעבר</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Karantina:wght@400;700&family=VT323&display=swap">
+<style>
+@property --cell { syntax: '<length>'; inherits: true; initial-value: 40px; }
+@property --sweep { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+/* Layout: editor = a stack of "tape" cards on a quiet blue-grey sheet; show = full-bleed VHS screen: name blanks on top, polaroid clue row under them */
+:root{
+  --bg:#eceef6; --surface:#ffffff; --sunk:#f4f5fa; --ink:#14173a; --muted:#585d80; --line:#d4d7e7;
+  --accent:#2a35cf; --accent-ink:#ffffff; --label:#ffc93c; --label-ink:#17182c;
+  --ok:#17804a; --ok-bg:#dcf2e4; --warn:#8f5400; --warn-bg:#fcefd4; --bad:#c2352b; --bad-bg:#fbe3e0;
+  /* the show screen keeps one look in both themes */
+  --tape:#0a0d29; --tape-2:#151b49; --tape-3:#252c6a; --phosphor:#f4f1e8; --osd:#eaf3ff; --osd-cyan:#4fd8ff;
+  --paper:#f3eee2; --paper-ink:#25222c; --rec:#ff4b3a; --hit:#46db8f; --fish:#ff9d2e;
+  --cas:#1c1c24; --cas-hi:#30303c; --cas-lo:#111117; --tape-brown:#3d2b22; --qr-bg:#ffffff;
+  --f-display:"Karantina","Secular One","Arial Narrow",sans-serif;
+  --f-body:"IBM Plex Sans Hebrew",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --f-hand:"Amatic SC","Karantina","Arial Narrow",cursive;
+  --f-osd:"VT323",ui-monospace,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b0d22; --surface:#141836; --sunk:#0f1230; --ink:#eceaf7; --muted:#a3a7c9; --line:#2a305e;
+    --accent:#8e97ff; --accent-ink:#0b0d22; --ok:#62d897; --ok-bg:#12341f; --warn:#f2c066; --warn-bg:#33270e; --bad:#ff7a6e; --bad-bg:#3a1714;
+    color-scheme:dark;
+  }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body.showing{overflow:hidden}
+img{max-width:100%}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* ---------- editor ---------- */
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1120px;margin:0 auto;padding-block:10px;display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px}
+.brand{display:flex;align-items:center;gap:12px;margin-inline-end:auto;min-width:0}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:700;font-size:38px;line-height:.9;letter-spacing:.01em}
+.brand-sub{margin:3px 0 0;font-size:13px;color:var(--muted)}
+.mini-cas{width:48px;height:30px;border-radius:5px;background:var(--cas);position:relative;flex:none;box-shadow:inset 0 0 0 2px var(--cas-hi)}
+.mini-cas::before{content:"";position:absolute;inset:4px 5px 14px;background:var(--label);border-radius:2px}
+.mini-cas i{position:absolute;bottom:4px;width:9px;height:9px;border-radius:50%;border:2px solid var(--paper)}
+.mini-cas i:first-child{left:11px}.mini-cas i:last-child{right:11px}
+.pill{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.pill.wait::before{background:var(--warn)}
+.pill.err::before{background:var(--bad)}
+.pill:empty::before{display:none}
+.start-area{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ready{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 16px;font-weight:500;cursor:pointer;line-height:1.2}
+.btn:hover{border-color:var(--muted)}
+.btn-start{background:var(--label);color:var(--label-ink);border-color:transparent;font-weight:600;font-size:16px;padding:11px 20px;box-shadow:0 2px 0 color-mix(in srgb,var(--label-ink) 28%,transparent)}
+.btn-start:hover{border-color:transparent;filter:brightness(1.05)}
+.btn-quiet{background:transparent}
+.btn-sm{padding:6px 12px;font-size:14px;border-radius:8px}
+
+.wrap{max-width:1120px;margin:0 auto;padding-block:26px 72px;display:grid;gap:30px}
+.notice{background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-radius:12px;padding:12px 16px}
+.info{color:var(--muted);font-size:14px;margin:-12px 0 0;max-width:80ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;min-width:0}
+.sec-h{margin:0 0 14px;font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1;letter-spacing:.01em;text-wrap:balance}
+.set-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.fld{display:grid;gap:6px;min-width:0;margin:0;border:0;padding:0}
+.fld.wide{grid-column:1/-1}
+.fld>span{font-size:13px;font-weight:500;color:var(--muted)}
+.fld em{font-style:normal;font-weight:400}
+input[type=text],textarea{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit;color:var(--ink);resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
+@media (max-width:640px){.set-grid{grid-template-columns:1fr}}
+
+.phones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.phones{grid-template-columns:1fr}}
+.ph-card{border:1px solid var(--line);background:var(--sunk);border-radius:12px;padding:14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start}
+.ph-card.groom{border-color:color-mix(in srgb,var(--label) 70%,var(--line))}
+.ph-qr{width:132px;aspect-ratio:1;max-width:100%;background:var(--qr-bg);border-radius:8px;padding:6px;display:grid;place-items:center}
+.ph-qr svg{width:100%;height:100%;display:block}
+.ph-qr.veiled{background:var(--surface);border:1.5px dashed var(--line);color:var(--muted);font-size:13px;text-align:center;padding:10px;cursor:pointer}
+.ph-body{display:grid;gap:8px;min-width:0}
+.ph-body h3{margin:0;font-size:16px;font-weight:600}
+.ph-body p{margin:0;font-size:13.5px;color:var(--muted)}
+.url{direction:ltr;text-align:left;font-family:var(--f-osd);font-size:19px;line-height:1.2;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 9px;overflow-wrap:anywhere;user-select:all}
+.ph-actions{display:flex;gap:8px;flex-wrap:wrap}
+.players{margin-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.players b{font-weight:500;font-size:14px;margin-inline-end:4px}
+.chip{font-size:12.5px;font-weight:500;border-radius:999px;padding:3px 10px;white-space:nowrap;background:var(--sunk);border:1px solid var(--line)}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+
+.rounds-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px;margin-bottom:14px}
+.rounds-head .sec-h{margin:0}
+.count{font-family:var(--f-osd);font-size:28px;color:var(--muted);font-weight:400}
+.sec-note{margin:0;color:var(--muted);font-size:14px}
+.rounds{display:grid;gap:18px}
+.empty{border:1.5px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
+
+.tape{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.tape-head{display:flex;align-items:center;gap:10px 12px;padding:12px 16px;background:var(--sunk);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tape-no{font-family:var(--f-osd);font-size:30px;line-height:1;background:var(--label);color:var(--label-ink);padding:5px 10px 3px;border-radius:7px;min-width:54px;text-align:center;font-variant-numeric:tabular-nums}
+.tape .name-in{flex:1 1 220px;min-width:0;font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1.1;background:transparent;border:0;border-bottom:2px dashed var(--line);border-radius:0;padding:2px}
+.tape .name-in:focus{outline:none;border-bottom-color:var(--accent)}
+.ex-tag{font-size:12px;font-weight:600;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:2px 9px}
+.tools{display:flex;gap:2px}
+.ic{min-width:34px;height:34px;display:grid;place-items:center;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:var(--muted);padding:0 6px}
+.ic:hover{background:var(--surface);border-color:var(--line);color:var(--ink)}
+.ic[disabled]{opacity:.3;pointer-events:none}
+.ic svg{width:18px;height:18px}
+.armed{background:var(--bad)!important;color:var(--surface)!important;border-color:transparent!important;font-size:13px;font-weight:600}
+.tape-body{padding:16px;display:grid;gap:16px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.clues{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.clues{grid-template-columns:1fr}}
+.clue{display:grid;gap:8px;align-content:start;min-width:0}
+.clue-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
+.clue-top b{font-weight:600}
+.clue-top span{color:var(--muted);font-size:12px}
+.clue-media{position:relative;aspect-ratio:4/3;max-width:100%;border:1.5px dashed var(--line);border-radius:11px;background:var(--sunk);overflow:hidden;display:grid}
+.clue-media.has{border-style:solid;background:var(--tape)}
+.clue-media.over,.vid.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--sunk))}
+.clue-media img,.clue-media video{width:100%;height:100%;object-fit:contain;display:block}
+.kind{position:absolute;top:8px;right:8px;font-size:11.5px;font-weight:600;background:color-mix(in srgb,var(--tape) 80%,transparent);color:var(--phosphor);border-radius:6px;padding:1px 7px}
+.media-add{all:unset;box-sizing:border-box;cursor:pointer;display:grid;place-content:center;justify-items:center;gap:3px;text-align:center;padding:12px;color:var(--muted);width:100%;height:100%;border-radius:10px}
+.media-add:hover{color:var(--ink)}
+.media-add:focus-visible{outline:2px solid var(--accent);outline-offset:-4px}
+.media-add span{font-weight:500;color:var(--ink)}
+.media-add small{font-size:12px;max-width:46ch}
+.media-add svg{width:26px;height:26px}
+.media-tools{position:absolute;bottom:8px;left:8px;display:flex;gap:6px}
+.mt{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:4px 10px;font-size:13px;cursor:pointer}
+.mt:hover{border-color:var(--muted)}
+.busy{display:grid;place-content:center;justify-items:center;gap:8px;color:var(--muted);font-size:13px;height:100%}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;display:inline-block;flex:none}
+.vid{border:1.5px dashed var(--line);border-radius:12px;background:var(--sunk);padding:12px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;min-height:84px}
+.vid.has{border-style:solid}
+.vid video{max-height:200px;max-width:min(100%,360px);border-radius:8px;background:var(--tape)}
+.vid-meta{display:grid;gap:3px;min-width:0;flex:1 1 200px}
+.vid-meta b{font-weight:500;overflow-wrap:anywhere}
+.vid-meta span{font-size:13px;color:var(--muted)}
+.vid-actions{display:flex;gap:6px;margin-top:6px}
+.media-add.wide{height:auto;padding:12px}
+.btn-add{margin-top:16px;width:100%;padding:14px;border:1.5px dashed var(--line);background:transparent;font-weight:600;border-radius:14px;font-size:15px;cursor:pointer}
+.btn-add:hover{border-color:var(--accent);color:var(--accent)}
+.backup{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.backup .usage{margin-inline-start:auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.help p{margin:0 0 10px;max-width:70ch}
+.keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 18px;margin:4px 0 14px;padding:0;list-style:none}
+.keys li{display:flex;align-items:center;gap:8px}
+kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--sunk);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 7px;direction:ltr;display:inline-block;min-width:26px;text-align:center}
+.tips{margin:0;padding-inline-start:18px;display:grid;gap:6px;color:var(--muted);max-width:75ch}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:100;width:max-content;max-width:calc(100% - 32px);font-size:14px;box-shadow:0 6px 20px color-mix(in srgb,var(--ink) 30%,transparent)}
+
+/* ---------- show ---------- */
+#stage{position:fixed;inset:0;z-index:50;overflow:hidden;color:var(--phosphor);background:radial-gradient(120% 95% at 50% 38%,var(--tape-2) 0%,var(--tape) 72%);font-family:var(--f-body);cursor:default;user-select:none;-webkit-user-select:none;outline:none}
+#stage.idle{cursor:none}
+#stage .scan{position:absolute;inset:0;z-index:6;pointer-events:none;background:repeating-linear-gradient(180deg,color-mix(in srgb,var(--phosphor) 3.5%,transparent) 0 1px,transparent 1px 3px)}
+#stage .scan::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 58%,color-mix(in srgb,var(--tape) 75%,transparent) 100%)}
+.osd{position:absolute;z-index:7;font-family:var(--f-osd);font-size:clamp(20px,3.4vh,48px);line-height:1;color:var(--osd);letter-spacing:.06em;direction:ltr;white-space:nowrap;pointer-events:none;text-shadow:.1em 0 0 color-mix(in srgb,var(--rec) 45%,transparent),-.1em 0 0 color-mix(in srgb,var(--osd-cyan) 45%,transparent)}
+.osd-tl{top:3vh;left:2.6vw}
+.osd-tr{top:3vh;right:2.6vw}
+.osd-bl{bottom:3vh;left:2.6vw;opacity:.7}
+.osd-bl .neterr{color:var(--rec);opacity:1}
+.scr{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:9vh 4vw 8vh}
+.cue{position:absolute;z-index:7;bottom:3vh;right:2.6vw;font-size:clamp(13px,2.1vh,24px);color:var(--osd);opacity:.45;transition:opacity .3s;pointer-events:none}
+#stage.awake .cue{opacity:0}
+
+.hostbar{position:absolute;z-index:12;left:50%;bottom:2.4vh;transform:translate(-50%,12px);display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-items:center;padding:6px;border-radius:14px;background:color-mix(in srgb,var(--tape) 88%,transparent);border:1px solid var(--tape-3);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:calc(100% - 24px);width:max-content}
+#stage.awake .hostbar{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+@media (hover:none){.hostbar{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.cue{display:none}}
+.hostbar button{border:0;background:var(--tape-3);color:var(--phosphor);border-radius:9px;padding:9px 13px;font:500 15px/1.1 var(--f-body);cursor:pointer;display:flex;align-items:center;gap:8px}
+.hostbar button:hover{background:color-mix(in srgb,var(--tape-3) 75%,var(--phosphor))}
+.hostbar .hb-main{background:var(--label);color:var(--label-ink)}
+.hostbar .hb-main:hover{background:color-mix(in srgb,var(--label) 88%,var(--phosphor))}
+.hostbar .hb-hit{background:color-mix(in srgb,var(--hit) 30%,var(--tape-3))}
+.hostbar .hb-fish{background:color-mix(in srgb,var(--fish) 30%,var(--tape-3))}
+.hostbar kbd{background:transparent;border-color:color-mix(in srgb,currentColor 35%,transparent);color:inherit;font-size:16px;padding:0 5px;min-width:0}
+.hb-sep{width:1px;align-self:stretch;background:var(--tape-3);margin:0 4px}
+
+/* cassette */
+.cas{--cw:min(46vw,72vh);container-type:inline-size;width:var(--cw);max-width:100%;aspect-ratio:1.8;position:relative;border-radius:2.6cqw;background:linear-gradient(180deg,var(--cas-hi) 0%,var(--cas) 14%,var(--cas) 86%,var(--cas-lo) 100%);box-shadow:0 2.4cqw 5cqw color-mix(in srgb,var(--tape) 85%,transparent),inset 0 0 0 .5cqw color-mix(in srgb,var(--phosphor) 6%,transparent);transform:rotate(-1.2deg)}
+.cas-label{position:absolute;top:6%;left:6%;right:6%;height:47%;background:var(--paper);border-radius:1.2cqw;overflow:hidden;display:grid;grid-template-rows:auto 1fr}
+.cas-stripe{background:var(--label);color:var(--label-ink);font-family:var(--f-osd);font-size:3.6cqw;line-height:1;display:flex;justify-content:space-between;padding:.9cqw 2.6cqw .5cqw;direction:ltr}
+.cas-text{display:grid;place-content:center;text-align:center;padding:0 4cqw;font-family:var(--f-hand);font-weight:700;color:var(--paper-ink);font-size:8.6cqw;line-height:.95;background:repeating-linear-gradient(180deg,transparent 0 4.6cqw,color-mix(in srgb,var(--osd-cyan) 32%,transparent) 4.6cqw calc(4.6cqw + 1px));text-wrap:balance}
+.cas-text small{display:block;font-size:4.8cqw;margin-top:.8cqw;opacity:.85}
+.cas-win{position:absolute;left:22%;right:22%;top:59%;height:29%;border-radius:1.6cqw;background:color-mix(in srgb,var(--tape) 70%,var(--cas-lo));box-shadow:inset 0 0 0 .5cqw var(--cas-lo),inset 0 .6cqw 1.6cqw color-mix(in srgb,var(--tape) 90%,transparent);display:flex;align-items:center;justify-content:space-between;padding:0 6%}
+.reel{width:34%;aspect-ratio:1;border-radius:50%;position:relative;background:radial-gradient(circle,transparent 0 38%,var(--tape-brown) 39% 100%)}
+.reel.thin{background:radial-gradient(circle,transparent 0 38%,var(--tape-brown) 39% 58%,transparent 59%)}
+.reel::after{content:"";position:absolute;inset:30%;border-radius:50%;background:radial-gradient(circle,var(--cas-lo) 0 24%,transparent 25%),repeating-conic-gradient(var(--paper) 0 16deg,var(--cas-hi) 16deg 60deg)}
+.cas.spin .reel::after{animation:spin 2.4s linear infinite}
+.cas.spin .reel.thin::after{animation-duration:1.5s}
+
+/* lobby */
+.lobby{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:center;gap:5vw;width:100%;max-width:1500px}
+.lb-main{display:grid;justify-items:center;gap:3.4vh;text-align:center;min-width:0}
+.intro-sub{margin:0;font-size:clamp(18px,3.4vh,44px);max-width:26ch;text-wrap:balance;line-height:1.3}
+.lb-join{display:grid;justify-items:center;gap:2vh;text-align:center;min-width:0}
+.lb-join h2{margin:0;font-family:var(--f-display);font-weight:700;font-size:clamp(28px,6vh,78px);line-height:1;color:var(--label)}
+.qr-big{width:min(30vw,44vh);aspect-ratio:1;background:var(--qr-bg);padding:1.6vh;border-radius:1.6vh;box-shadow:0 2vh 5vh color-mix(in srgb,var(--tape) 80%,transparent);transform:rotate(1.2deg)}
+.qr-big svg{width:100%;height:100%;display:block}
+.lb-url{font-family:var(--f-osd);font-size:clamp(16px,3vh,38px);color:var(--osd);direction:ltr;letter-spacing:.02em;overflow-wrap:anywhere;max-width:100%}
+.lb-joined{font-size:clamp(14px,2.4vh,30px);opacity:.85;margin:0}
+.lb-names{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.8vh .6vw;max-width:36vw}
+.lb-names li{font-size:clamp(12px,2vh,24px);background:var(--tape-2);border:1px solid var(--tape-3);border-radius:99px;padding:.3vh 1vw}
+.qr-corner{position:absolute;z-index:11;top:9vh;left:2.6vw;display:grid;justify-items:center;gap:1vh;background:var(--tape-2);border:1px solid var(--tape-3);border-radius:1.6vh;padding:1.6vh;text-align:center;font-size:clamp(13px,2.2vh,26px)}
+.qr-corner .qr-box{width:min(20vw,30vh);aspect-ratio:1;background:var(--qr-bg);padding:1vh;border-radius:1vh}
+.qr-corner svg{width:100%;height:100%;display:block}
+
+/* clue board */
+.board{display:grid;justify-items:center;gap:3vh;width:100%}
+.b-head{display:flex;align-items:baseline;gap:1.2vw;font-family:var(--f-display);font-weight:700;font-size:clamp(24px,5.2vh,70px);line-height:1}
+.b-tape{color:var(--label)}
+.b-dot{opacity:.4}
+.b-count{font-family:var(--f-body);font-weight:500;font-size:clamp(13px,2.2vh,26px);background:var(--tape-2);border:1px solid var(--tape-3);border-radius:99px;padding:.4vh 1.1vw;align-self:center;margin-inline-start:1vw}
+.cards-wrap{position:relative;width:100%;display:grid;place-items:center}
+.cards{display:flex;justify-content:center;align-items:flex-start;gap:2.6vw;perspective:2200px;width:100%}
+.pol{--w:min(26vw,44vh);width:var(--w);margin:0;transform:rotate(var(--rot,0deg));transition:transform .5s;cursor:zoom-in}
+.pol:not(.up){cursor:inherit}
+.board[data-n="1"] .pol{--w:min(44vw,48vh)}
+.board[data-n="2"] .pol{--w:min(34vw,46vh)}
+.pol.new{transform:rotate(var(--rot,0deg)) translateY(-1.2vh) scale(1.03)}
+.board.no-anim .pol,.board.no-anim .pol-in{transition:none}
+.pol-in{position:relative;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.2,.75,.25,1)}
+.pol:not(.up) .pol-in{transform:rotateY(180deg)}
+.pol-front,.pol-back{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.pol-front{position:relative;background:var(--paper);color:var(--paper-ink);padding:calc(var(--w)*.05) calc(var(--w)*.05) 0;border-radius:.4vh;box-shadow:0 2.4vh 4vh color-mix(in srgb,var(--tape) 80%,transparent)}
+.pol-front::before{content:"";position:absolute;top:calc(var(--w)*-.035);left:50%;width:34%;height:calc(var(--w)*.08);transform:translateX(-50%) rotate(-3deg);background:color-mix(in srgb,var(--label) 72%,transparent);z-index:2}
+.pol-photo{position:relative;aspect-ratio:4/3;overflow:hidden;background:var(--tape)}
+.pol-photo .bg{position:absolute;inset:-12%;width:124%;height:124%;max-width:none;object-fit:cover;filter:blur(1.6vh) brightness(.5)}
+.pol-photo .fg{position:relative;width:100%;height:100%;object-fit:contain;display:block}
+.pol-photo.txt{display:grid;place-items:center;padding:6%;background:var(--paper) repeating-linear-gradient(180deg,transparent 0 calc(var(--w)*.1),color-mix(in srgb,var(--osd-cyan) 38%,transparent) calc(var(--w)*.1) calc(var(--w)*.1 + 1px));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--paper-ink) 12%,transparent)}
+.pol-photo.txt p{margin:0;font-family:var(--f-hand);font-weight:700;font-size:calc(var(--w)*.12);line-height:1.02;text-align:center;color:var(--paper-ink);text-wrap:balance;overflow-wrap:anywhere}
+.pol-photo.txt.long p{font-size:calc(var(--w)*.088)}
+.pol-photo.txt.xl p{font-size:calc(var(--w)*.066)}
+.pol-cap{font-family:var(--f-hand);font-weight:700;font-size:calc(var(--w)*.092);line-height:1.02;text-align:center;padding:calc(var(--w)*.035) calc(var(--w)*.02) calc(var(--w)*.05);min-height:calc(var(--w)*.17);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;text-wrap:balance}
+.pol-back{position:absolute;inset:0;transform:rotateY(180deg);border-radius:.6vh;background:repeating-linear-gradient(45deg,var(--tape-3) 0 1.2vh,var(--tape-2) 1.2vh 2.4vh);box-shadow:inset 0 0 0 .35vh color-mix(in srgb,var(--phosphor) 14%,transparent);display:grid;place-content:center;justify-items:center;gap:1vh}
+.pol-back .q{font-family:var(--f-display);font-weight:700;font-size:calc(var(--w)*.42);line-height:.8;color:var(--label)}
+.pol-back .no{font-family:var(--f-display);font-weight:400;font-size:calc(var(--w)*.1);color:var(--phosphor);opacity:.8}
+.vid-badge{position:absolute;bottom:6px;left:6px;z-index:2;font-family:var(--f-osd);font-size:calc(var(--w)*.06);line-height:1;background:color-mix(in srgb,var(--tape) 80%,transparent);color:var(--osd);padding:3px 6px 1px;border-radius:4px;direction:ltr}
+
+/* name blanks */
+.blanks{--cell:var(--cell-n);display:flex;flex-wrap:wrap;justify-content:center;gap:1.4vh calc(var(--cell)*.75);transition:--cell .7s cubic-bezier(.3,.7,.2,1)}
+.word{display:flex;gap:calc(var(--cell)*.18)}
+.bl{width:var(--cell);height:calc(var(--cell)*1.28);border-bottom:max(3px,calc(var(--cell)*.085)) solid var(--label);display:grid;place-items:end center}
+.bl b{display:inline-block;font-family:var(--f-display);font-weight:700;font-size:calc(var(--cell)*1.18);line-height:1;color:var(--phosphor)}
+.bl.punct{border-bottom-color:transparent;width:auto}
+.bl.got b{color:var(--label)}
+.bl.pop b{animation:pop .55s both}
+.bl.fill b{animation:letterIn .38s var(--d,0ms) both;color:var(--hit)}
+.reveal .bl.fill b{color:var(--label)}
+
+/* verdicts */
+.verdict{position:absolute;inset:-2vh -4vw;z-index:4;display:grid;place-items:center;align-content:center;gap:2vh;text-align:center;background:color-mix(in srgb,var(--tape) 78%,transparent);border-radius:2vh;overflow:hidden}
+.vd-word{font-family:var(--f-display);font-weight:700;font-size:clamp(70px,22vh,300px);line-height:.85;margin:0;animation:slamBig .5s cubic-bezier(.25,1.5,.45,1) both}
+.verdict.win .vd-word{color:var(--hit);text-shadow:0 .6vh 0 color-mix(in srgb,var(--tape) 70%,transparent)}
+.verdict.fish .vd-word{color:var(--fish);text-shadow:0 .6vh 0 color-mix(in srgb,var(--tape) 70%,transparent)}
+.vd-guess{font-family:var(--f-hand);font-weight:700;font-size:clamp(28px,7vh,96px);line-height:1;margin:0;color:var(--phosphor)}
+.verdict.fish .vd-guess s{text-decoration-color:var(--rec);text-decoration-thickness:.08em}
+.vd-sub{font-size:clamp(16px,3vh,40px);margin:0;opacity:.85}
+.fishy{position:absolute;top:8%;width:clamp(120px,22vh,320px);right:-30%;animation:swim 2.8s linear forwards}
+.fishy svg{width:100%;height:auto;display:block;animation:bob .5s ease-in-out infinite alternate}
+.fishy.two{top:auto;bottom:8%;width:clamp(80px,13vh,190px);animation-duration:3.4s;animation-delay:.25s}
+#confetti{position:absolute;inset:0;z-index:9;pointer-events:none;width:100%;height:100%}
+
+/* friends' guesses */
+.friends{display:grid;justify-items:center;gap:4vh;width:100%;max-width:1600px}
+.fr-title{margin:0;font-family:var(--f-display);font-weight:700;font-size:clamp(36px,9vh,120px);line-height:.9;color:var(--label);text-align:center;text-wrap:balance}
+.fr-grid{--fs:6vh;list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:2.4vh 1.6vw;max-width:100%}
+.note{min-width:min(17vw,30vh);max-width:28vw;background:var(--paper);color:var(--paper-ink);padding:1.4vh 1.4vw 1.8vh;border-radius:.4vh;transform:rotate(var(--rot,0deg));box-shadow:0 1.6vh 3vh color-mix(in srgb,var(--tape) 75%,transparent);display:grid;gap:.6vh;text-align:center;animation:noteIn .5s var(--d,0ms) cubic-bezier(.2,1.3,.4,1) both;position:relative}
+.note::before{content:"";position:absolute;top:-1.2vh;left:50%;width:40%;height:2.4vh;transform:translateX(-50%) rotate(-2deg);background:color-mix(in srgb,var(--label) 72%,transparent)}
+.fr-name{font-size:calc(var(--fs)*.42);font-weight:600;opacity:.65}
+.fr-guess{font-family:var(--f-hand);font-weight:700;font-size:var(--fs);line-height:1;overflow-wrap:anywhere}
+.fr-empty{font-size:3.4vh;opacity:.8}
+
+/* countdown: VHS film leader */
+.cd{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(circle,color-mix(in srgb,var(--tape-3) 60%,var(--tape)) 0%,var(--tape) 70%)}
+.cd::before,.cd::after{content:"";position:absolute;background:color-mix(in srgb,var(--phosphor) 25%,transparent)}
+.cd::before{left:0;right:0;top:50%;height:2px}
+.cd::after{top:0;bottom:0;left:50%;width:2px}
+.cd-face{position:relative;width:min(70vh,60vw);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 1.2vh color-mix(in srgb,var(--phosphor) 85%,transparent),0 0 0 2.2vh var(--tape),0 0 0 2.8vh color-mix(in srgb,var(--phosphor) 50%,transparent);background:conic-gradient(color-mix(in srgb,var(--phosphor) 22%,transparent) 0 var(--sweep),transparent var(--sweep) 360deg);animation:sweep 1s linear both;z-index:1}
+.cd-num{font-family:var(--f-display);font-weight:700;font-size:min(56vh,48vw);line-height:.8;color:var(--phosphor);animation:cdIn .35s cubic-bezier(.2,1.4,.4,1) both}
+
+/* reveal */
+.reveal{width:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);justify-items:center;align-items:center;gap:2vh}
+.rv-top{display:grid;justify-items:center;gap:1.4vh;text-align:center}
+.rv-kicker{font-family:var(--f-display);font-weight:700;font-size:clamp(16px,3vh,38px);color:var(--label);line-height:1}
+.reveal .blanks{--cell:var(--cell-s)}
+.reveal .bl{border-bottom-color:color-mix(in srgb,var(--label) 55%,transparent)}
+.rv-meta{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:1.2vh 2.4vw}
+.rv-cap{font-size:clamp(15px,2.7vh,34px)}
+.stamp{font-family:var(--f-display);font-weight:700;font-size:clamp(16px,3.2vh,40px);line-height:1;padding:.6vh 1.6vh .2vh;border:.5vh solid currentColor;border-radius:1vh;color:var(--hit);transform:rotate(-5deg);animation:slam .42s .3s cubic-bezier(.25,1.6,.45,1) both}
+.stamp.bad{color:var(--rec)}
+.rv-friends{font-size:clamp(13px,2.3vh,28px);opacity:.9}
+.rv-friends b{color:var(--hit);font-weight:600}
+.rv-media{min-height:0;height:100%;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tv{position:relative;background:var(--cas);padding:1vh;border-radius:1.6vh;box-shadow:0 2vh 5vh color-mix(in srgb,var(--tape) 85%,transparent),inset 0 0 0 .3vh var(--cas-hi);display:grid;place-items:center;max-height:100%;cursor:pointer}
+.tv video{display:block;max-width:88vw;max-height:58vh;border-radius:.8vh;background:var(--tape)}
+.tv canvas{display:block;width:min(60vw,90vh);aspect-ratio:16/9;border-radius:.8vh;image-rendering:pixelated}
+.static-msg{position:absolute;left:0;right:0;bottom:14%;text-align:center;font-family:var(--f-display);font-weight:700;font-size:4.4vh;color:var(--phosphor);text-shadow:0 .3vh 1.2vh var(--tape);padding:0 4vw}
+.tv-play{position:absolute;inset:0;margin:auto;width:12vh;height:12vh;border-radius:50%;border:0;background:color-mix(in srgb,var(--tape) 72%,transparent);color:var(--phosphor);font-size:5vh;cursor:pointer;display:grid;place-items:center;box-shadow:0 0 0 .4vh color-mix(in srgb,var(--phosphor) 40%,transparent)}
+
+/* end */
+.end{display:grid;justify-items:center;gap:3vh;text-align:center;max-width:100%}
+.end-k{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,5vh,66px);color:var(--label);line-height:1}
+.end-score{margin:0;font-family:var(--f-display);font-weight:700;font-size:clamp(40px,10vh,140px);line-height:.95;text-wrap:balance}
+.end-score b{color:var(--label)}
+.end-cols{display:flex;flex-wrap:wrap;justify-content:center;gap:3vh 4vw;align-items:flex-start}
+.end-col h3{margin:0 0 1.4vh;font-size:clamp(14px,2.6vh,32px);font-weight:600;opacity:.8}
+.end-list{list-style:none;margin:0;padding:0;display:grid;gap:1vh;justify-items:stretch}
+.end-list li{display:flex;align-items:baseline;justify-content:space-between;gap:2vw;background:var(--tape-2);border:1px solid var(--tape-3);border-radius:1vh;padding:.9vh 1.6vw;font-size:clamp(13px,2.4vh,28px);min-width:min(30vw,52vh)}
+.end-list .nm{font-family:var(--f-display);font-weight:700;font-size:1.35em;line-height:1}
+.end-list .rs{font-size:.85em;opacity:.9;font-variant-numeric:tabular-nums}
+.end-list li.ok .rs{color:var(--hit)}
+.end-list li.bad .rs{color:var(--rec)}
+.end-list li.top{border-color:var(--label)}
+
+/* overlays on stage */
+.zoom{position:absolute;inset:0;z-index:10;background:color-mix(in srgb,var(--tape) 92%,transparent);display:grid;place-items:center;padding:6vh 6vw;cursor:zoom-out}
+.zpol{margin:0;background:var(--paper);color:var(--paper-ink);padding:2vh 2vh 0;border-radius:.6vh;max-width:88vw;display:grid;justify-items:center;box-shadow:0 3vh 6vh color-mix(in srgb,var(--tape) 80%,transparent);transform:rotate(-1deg)}
+.zpol img,.zpol video{max-width:calc(88vw - 4vh);max-height:72vh;display:block;background:var(--tape)}
+.zpol figcaption{font-family:var(--f-hand);font-weight:700;font-size:6vh;line-height:1.05;text-align:center;padding:1.6vh 2vh 2.6vh;max-width:70vw;text-wrap:balance}
+.zpol figcaption.big{font-size:10vh;padding:6vh 5vh 7vh}
+.typer{position:absolute;inset:0;z-index:13;background:color-mix(in srgb,var(--tape) 80%,transparent);display:grid;place-items:center}
+.typer form{background:var(--tape-2);border:1px solid var(--tape-3);border-radius:2vh;padding:3vh 3vw;display:grid;gap:2vh;width:min(70vw,900px);text-align:center}
+.typer label{font-family:var(--f-display);font-weight:700;font-size:6vh;line-height:1;color:var(--label)}
+.typer input{font-family:var(--f-hand);font-weight:700;font-size:7vh;text-align:center;background:var(--paper);color:var(--paper-ink);border:0;border-radius:1vh;padding:1vh 2vw;width:100%}
+.typer small{opacity:.7;font-size:2.2vh}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes letterIn{from{opacity:0;transform:translateY(-.35em) scale(1.45)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.25)}100%{opacity:1;transform:none}}
+@keyframes slam{from{opacity:0;transform:rotate(-14deg) scale(2.4)}to{opacity:1;transform:rotate(-5deg) scale(1)}}
+@keyframes slamBig{from{opacity:0;transform:scale(2.2) rotate(-6deg)}to{opacity:1;transform:none}}
+@keyframes swim{from{right:-30%}to{right:120%}}
+@keyframes bob{from{transform:translateY(-6%) rotate(-4deg)}to{transform:translateY(6%) rotate(4deg)}}
+@keyframes noteIn{from{opacity:0;transform:translateY(4vh) rotate(calc(var(--rot,0deg) * 4)) scale(.8)}to{opacity:1;transform:rotate(var(--rot,0deg))}}
+@keyframes sweep{from{--sweep:0deg}to{--sweep:360deg}}
+@keyframes cdIn{from{opacity:0;transform:scale(1.5)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+  .cas.spin .reel::after,.spin{animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="topbar-in gut">
+      <div class="brand">
+        <span class="mini-cas" aria-hidden="true"><i></i><i></i></span>
+        <div>
+          <h1>קלטות מהעבר</h1>
+          <p class="brand-sub">משחק הסרטונים למסיבת הרווקים</p>
+        </div>
+      </div>
+      <span class="pill" id="saveState" aria-live="polite"></span>
+      <span class="pill wait" id="netState" aria-live="polite">מתחבר לטלפונים…</span>
+      <div class="start-area">
+        <span class="ready" id="readyCount"></span>
+        <button class="btn btn-quiet" id="restartBtn" type="button" hidden>התחלה מחדש</button>
+        <button class="btn btn-start" id="startBtn" type="button">&#x25B6;&#xFE0E; התחלת המשחק</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap gut">
+    <div class="notice" id="notice" hidden></div>
+    <p class="info">הכול נשמר בדפדפן הזה, במחשב הזה. כדאי להכין ולהקרין מאותו מחשב ובאותו דפדפן (עדיף Chrome). כדי לעבור למחשב אחר, שומרים גיבוי לקובץ למטה וטוענים אותו שם.</p>
+
+    <section class="panel" aria-labelledby="setH">
+      <h2 id="setH" class="sec-h">הגדרות המשחק</h2>
+      <div class="set-grid">
+        <label class="fld"><span>שם המשחק (מופיע במסך הפתיחה)</span><input type="text" id="setTitle" data-s="title" placeholder="קלטות מהעבר" autocomplete="off" maxlength="40"></label>
+        <label class="fld"><span>שם החתן</span><input type="text" id="setGroom" data-s="groom" placeholder="למשל: דניאל" autocomplete="off" maxlength="30"></label>
+        <label class="fld wide"><span>שורת פתיחה</span><input type="text" id="setSubtitle" data-s="subtitle" autocomplete="off" maxlength="90"></label>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="phH">
+      <h2 id="phH" class="sec-h">הטלפונים</h2>
+      <div class="phones">
+        <div class="ph-card">
+          <div class="ph-qr" id="qrFriends" aria-label="QR לחברים"></div>
+          <div class="ph-body">
+            <h3>הקישור לחברים</h3>
+            <p>כל אחד סורק, כותב את השם שלו, ומקבל ניחוש אחד בכל סבב. ה-QR מופיע גם במסך הפתיחה של המשחק.</p>
+            <div class="url" id="urlFriends"></div>
+            <div class="ph-actions"><button type="button" class="btn btn-sm" data-copy="friends">העתקה</button></div>
+          </div>
+        </div>
+        <div class="ph-card groom">
+          <div class="ph-qr veiled" id="qrGroom" role="button" tabindex="0">הצגת ה-QR של החתן</div>
+          <div class="ph-body">
+            <h3>הקישור של החתן</h3>
+            <p>רק בקישור הזה המסך מגיב לניחוש: «כל הכבוד!» או «איזה דג!». החתן יכול לנחש שוב אחרי כל רמז. פתחו אותו בטלפון שלו לפני המשחק, ואל תקרינו אותו.</p>
+            <div class="url" id="urlGroom"></div>
+            <div class="ph-actions"><button type="button" class="btn btn-sm" data-copy="groom">העתקה</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="players" id="players"><b>מי התחבר:</b><span class="chip">עוד אף אחד</span></div>
+    </section>
+
+    <section aria-labelledby="rH">
+      <div class="rounds-head">
+        <h2 id="rH" class="sec-h">האנשים מהעבר <span class="count" id="roundCount"></span></h2>
+        <p class="sec-note">כל אדם הוא סבב: עד 3 רמזים מהקשה לקל, ואז הסרטון שלו.</p>
+      </div>
+      <div class="empty" id="emptyState" hidden>עוד אין אף אחד ברשימה. כל מי ששלח סרטון הוא סבב במשחק.</div>
+      <div class="rounds" id="roundsList"></div>
+      <button class="btn-add" id="addRound" type="button">+ הוספת אדם</button>
+    </section>
+
+    <section class="panel" aria-labelledby="bkH">
+      <h2 id="bkH" class="sec-h">גיבוי ואיפוס</h2>
+      <div class="backup">
+        <button type="button" class="btn" id="exportBtn">שמירת גיבוי לקובץ</button>
+        <button type="button" class="btn" id="importBtn">טעינת גיבוי מקובץ</button>
+        <button type="button" class="btn btn-quiet" id="resetLiveBtn">איפוס התוצאות</button>
+        <span class="usage" id="usage"></span>
+        <input type="file" id="importFile" accept=".kaltot,application/octet-stream" hidden>
+      </div>
+    </section>
+
+    <section class="panel help" aria-labelledby="hH">
+      <h2 id="hH" class="sec-h">במסיבה</h2>
+      <p>חברו את המחשב למקרן ולרמקול ולחצו «התחלת המשחק». המסך עובר למסך מלא. מתקדמים בלחיצה, בחצים או עם קליקר של מצגות. כשמזיזים את העכבר מופיע סרגל שליטה למטה.</p>
+      <ul class="keys">
+        <li><kbd>&rarr;</kbd><kbd>רווח</kbd> הבא</li>
+        <li><kbd>&larr;</kbd> חזרה צעד</li>
+        <li><kbd>T</kbd> הקלדת הניחוש של החתן כאן</li>
+        <li><kbd>G</kbd> החתן צדק (תיקון ידני)</li>
+        <li><kbd>D</kbd> איזה דג (תיקון ידני)</li>
+        <li><kbd>Q</kbd> הצגת ה-QR בפינה</li>
+        <li><kbd>L</kbd> חשיפת אות בשם</li>
+        <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> הגדלת רמז</li>
+        <li><kbd>R</kbd> הסרטון מההתחלה</li>
+        <li><kbd>F</kbd> מסך מלא</li>
+        <li><kbd>M</kbd> השתקת צלילי המשחק</li>
+      </ul>
+      <ul class="tips">
+        <li>הניחוש של החתן נבדק אוטומטית: שם מלא, שם פרטי או שם משפחה, עם טעות הקלדה קטנה. כינויים ואיותים נוספים מוסיפים בכרטיס של כל אדם.</li>
+        <li>אם הבדיקה האוטומטית טעתה, <kbd>G</kbd> או <kbd>D</kbd> מתקנים אותה גם אחרי שהמסך הגיב.</li>
+        <li>צריך אינטרנט במחשב ובטלפונים. התמונות והסרטונים עצמם נטענים מהמחשב ולא מהרשת.</li>
+        <li>הריצו סבב אחד לפני המסיבה, על המחשב שיחובר למקרן, עם טלפון אחד של חבר ועם הקישור של החתן.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<div id="stage" hidden tabindex="-1" aria-label="מסך המשחק">
+  <div class="scan" aria-hidden="true"></div>
+  <div class="osd osd-tl" id="osdMode"></div>
+  <div class="osd osd-tr" id="osdCh"></div>
+  <div class="osd osd-bl" id="osdClock"></div>
+  <div class="scr" id="scr"></div>
+  <canvas id="confetti" hidden></canvas>
+  <div class="cue" id="cue"></div>
+  <div class="qr-corner" id="qrCorner" hidden></div>
+  <div class="zoom" id="zoom" hidden></div>
+  <div class="typer" id="typer" hidden>
+    <form id="typerForm" autocomplete="off">
+      <label for="typerIn">הניחוש של החתן</label>
+      <input type="text" id="typerIn" maxlength="40" autocomplete="off">
+      <small>Enter לשליחה · Esc לביטול</small>
+    </form>
+  </div>
+  <nav class="hostbar" id="hostbar" aria-label="שליטה במשחק">
+    <button type="button" data-h="exit">יציאה</button>
+    <span class="hb-sep" aria-hidden="true"></span>
+    <button type="button" data-h="prev">חזרה <kbd>&larr;</kbd></button>
+    <button type="button" data-h="next" class="hb-main">הבא <kbd>&rarr;</kbd></button>
+    <button type="button" data-h="type">הקלדת ניחוש <kbd>T</kbd></button>
+    <button type="button" data-h="right" class="hb-hit">&#x2713; צדק <kbd>G</kbd></button>
+    <button type="button" data-h="wrong" class="hb-fish">איזה דג <kbd>D</kbd></button>
+    <button type="button" data-h="qr">QR <kbd>Q</kbd></button>
+    <button type="button" data-h="fs" id="hbFs">מסך מלא <kbd>F</kbd></button>
+  </nav>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="lib/mqtt.min.js"></script>
+<script src="lib/qrcode.js"></script>
+<script src="lib/relay.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const K = window.Kaltot;
+const MiB = 1048576;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pad = n => String(n).padStart(2, '0');
+const fmtMB = b => b >= 1024 * MiB ? (b / 1024 / MiB).toFixed(1) + 'GB' : (b / MiB).toFixed(b < 10 * MiB ? 1 : 0) + 'MB';
+const clip = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, '').trim().slice(0, n);
+const TRI = '▶︎';
+const clone = o => o == null ? o : JSON.parse(JSON.stringify(o));
+
+const DEFAULT_SETTINGS = { title: 'קלטות מהעבר', subtitle: 'אנשים מהעבר שלך הקליטו לך משהו. תזהה מי?', groom: '' };
+
+function toast(msg, ms = 4600) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, ms);
+}
+function showNotice(t) { const n = $('#notice'); n.textContent = t || ''; n.hidden = !t; }
+
+/* ---------- local storage (IndexedDB) ---------- */
+const IDB = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('kaltot', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('kv'); d.createObjectStore('media'); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+  const tx = async (store, mode, fn) => {
+    const d = await open();
+    return new Promise((res, rej) => {
+      const t = d.transaction(store, mode), s = t.objectStore(store);
+      let out; const rq = fn(s);
+      if (rq) rq.onsuccess = () => { out = rq.result; };
+      t.oncomplete = () => res(out);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error);
+    });
+  };
+  return {
+    get: (st, k) => tx(st, 'readonly', s => s.get(k)),
+    put: (st, k, v) => tx(st, 'readwrite', s => s.put(v, k)),
+    del: (st, k) => tx(st, 'readwrite', s => s.delete(k)),
+    keys: st => tx(st, 'readonly', s => s.getAllKeys())
+  };
+})();
+
+/* media: id -> {url, kind, mime, name, size} */
+const M = new Map();
+async function loadMedia() {
+  const keys = await IDB.keys('media');
+  for (const k of keys) {
+    try {
+      const rec = await IDB.get('media', k);
+      if (rec && rec.blob) M.set(k, { url: URL.createObjectURL(rec.blob), kind: rec.kind, mime: rec.mime, name: rec.name, size: rec.blob.size });
+    } catch (e) {}
+  }
+}
+async function addMedia(blob, kind, name) {
+  const id = 'm' + Date.now().toString(36) + K.rid(5);
+  await IDB.put('media', id, { blob, kind, mime: blob.type || '', name: name || '' });
+  M.set(id, { url: URL.createObjectURL(blob), kind, mime: blob.type || '', name: name || '', size: blob.size });
+  askPersist();
+  return id;
+}
+function isRef(id) { return G.rounds.some(r => r.video === id || r.clues.some(c => c.media === id)); }
+async function dropMedia(id) {
+  if (!id || isRef(id)) return;
+  const m = M.get(id);
+  if (m) URL.revokeObjectURL(m.url);
+  M.delete(id);
+  try { await IDB.del('media', id); } catch (e) {}
+  updateUsage();
+}
+let persistAsked = false;
+function askPersist() { if (persistAsked) return; persistAsked = true; try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {} }
+async function updateUsage() {
+  let total = 0; for (const m of M.values()) total += m.size || 0;
+  let txt = M.size ? `${M.size} קבצים · ${fmtMB(total)}` : 'אין עדיין קבצים';
+  try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); if (e.quota) txt += ` · נשאר מקום לעוד ${fmtMB(Math.max(0, e.quota - e.usage))}`; } } catch (e) {}
+  $('#usage').textContent = txt;
+}
+
+/* ---------- game data ---------- */
+let G = null; // { settings, rounds }
+let L = null; // live game state (results, guesses, position)
+function newRound(over) {
+  return Object.assign({ id: 'r' + Date.now().toString(36) + K.rid(4), name: '', aliases: '', caption: '', clues: [{ media: null, text: '' }, { media: null, text: '' }, { media: null, text: '' }], video: null, example: false }, over || {});
+}
+function defaultGame() {
+  return {
+    settings: Object.assign({}, DEFAULT_SETTINGS, { code: K.rid(6), groomKey: K.rid(8) }),
+    rounds: [
+      newRound({ name: 'ישראל ישראלי', caption: 'דוגמה. אפשר למחוק או לשנות', example: true, clues: [{ media: null, text: 'קיץ 2009, מחנה בגליל' }, { media: null, text: 'הוא זה שלימד אותך לקשור קשר שטוחי' }, { media: null, text: 'עדיין חייב לך 50 שקל' }] }),
+      newRound({ name: 'מיכל כהן', caption: 'דוגמה. החברה מהתיכון', example: true, clues: [{ media: null, text: 'ישבה לידך בשיעורי מתמטיקה' }, { media: null, text: 'העתקתם יחד במבחן של כיתה י׳' }, { media: null, text: '' }] })
+    ]
+  };
+}
+function normGame(g) {
+  g = g && typeof g === 'object' ? g : defaultGame();
+  g.settings = Object.assign({}, DEFAULT_SETTINGS, g.settings || {});
+  if (!g.settings.code) g.settings.code = K.rid(6);
+  if (!g.settings.groomKey) g.settings.groomKey = K.rid(8);
+  g.rounds = (Array.isArray(g.rounds) ? g.rounds : []).map(r => {
+    const n = newRound(r);
+    n.clues = [0, 1, 2].map(i => ({ media: (r.clues && r.clues[i] && r.clues[i].media) || null, text: String((r.clues && r.clues[i] && r.clues[i].text) || '') }));
+    return n;
+  });
+  return g;
+}
+function newLive() {
+  return { session: K.rid(6), pos: { view: 'intro', rid: null, stage: 0 }, results: {}, used: {}, groomLog: {}, groomLast: null, friends: {}, locked: {}, letters: {}, processed: {}, t0: 0 };
+}
+function normLive(l) {
+  l = l && typeof l === 'object' ? l : newLive();
+  const d = newLive();
+  for (const k of Object.keys(d)) if (l[k] == null) l[k] = d[k];
+  return l;
+}
+
+let saveT = 0, saving = false, saveErr = false;
+function saveGame(delay = 400) {
+  clearTimeout(saveT);
+  saveT = setTimeout(async () => {
+    saveT = 0; saving = true; saveState();
+    try { await IDB.put('kv', 'game', G); saveErr = false; }
+    catch (e) { saveErr = true; toast('השמירה בדפדפן נכשלה. אולי נגמר המקום במחשב.'); }
+    saving = false; saveState();
+  }, delay);
+  saveState();
+}
+function saveState() {
+  const el = $('#saveState');
+  const busy = saveT || saving || S.busy.size;
+  el.className = 'pill' + (busy ? ' wait' : saveErr ? ' err' : '');
+  el.textContent = busy ? 'שומר…' : saveErr ? 'השמירה נכשלה' : 'הכול נשמר במחשב הזה';
+}
+let liveT = 0;
+function saveLive() {
+  clearTimeout(liveT);
+  liveT = setTimeout(() => { IDB.put('kv', 'live', L).catch(() => {}); }, 250);
+}
+window.addEventListener('beforeunload', e => { if (saveT || saving || S.busy.size) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- links & QR ---------- */
+function playURL(groom) {
+  const u = new URL('play.html', location.href);
+  u.search = '';
+  u.searchParams.set('g', G.settings.code);
+  if (groom) u.searchParams.set('k', G.settings.groomKey);
+  const b = K.brokerParam(); if (b) u.searchParams.set('broker', b);
+  u.hash = '';
+  return u.toString();
+}
+const prettyURL = u => u.replace(/^https?:\/\//, '');
+function qrSVG(text) {
+  try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+  catch (e) { return ''; }
+}
+function renderLinks() {
+  const fu = playURL(false), gu = playURL(true);
+  $('#urlFriends').textContent = prettyURL(fu);
+  $('#urlGroom').textContent = prettyURL(gu);
+  $('#qrFriends').innerHTML = qrSVG(fu);
+  const gq = $('#qrGroom');
+  if (gq.dataset.open === '1') gq.innerHTML = qrSVG(gu);
+}
+async function copyText(t, btn) {
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) {} ta.remove();
+  }
+  const old = btn.textContent; btn.textContent = 'הועתק'; setTimeout(() => { btn.textContent = old; }, 1600);
+}
+
+/* ---------- editor ---------- */
+const S = { busy: new Map(), cards: new Map(), players: new Map() };
+const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICON = {
+  up: svg('<path d="M12 19V5M5 12l7-7 7 7"/>'),
+  down: svg('<path d="M12 5v14M5 12l7 7 7-7"/>'),
+  trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
+  play: svg('<path d="M7 5l12 7-12 7z"/>'),
+  image: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>'),
+  film: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/>')
+};
+function setVal(inp, v) { if (inp && document.activeElement !== inp && inp.value !== v) inp.value = v; }
+function renderSettings() { for (const inp of $$('[data-s]')) setVal(inp, G.settings[inp.dataset.s] || ''); }
+function missing(r) {
+  const m = [];
+  if (!r.name.trim()) m.push('שם');
+  if (!r.clues.some(c => c.media || c.text.trim())) m.push('רמזים');
+  if (!r.video) m.push('סרטון');
+  return m;
+}
+function makeCard(id) {
+  const el = document.createElement('article');
+  el.className = 'tape'; el.dataset.id = id;
+  el.innerHTML = `
+  <header class="tape-head">
+    <span class="tape-no" data-x="no">01</span>
+    <input type="text" class="name-in" data-f="name" id="name-${id}" placeholder="השם (זו התשובה)" aria-label="שם האדם" autocomplete="off" maxlength="40">
+    <span class="ex-tag" data-x="ex" hidden>דוגמה</span>
+    <span class="chip" data-x="status"></span>
+    <div class="tools">
+      <button type="button" class="ic" data-act="play-from" title="להריץ את המשחק מהסבב הזה" aria-label="להריץ מהסבב הזה">${ICON.play}</button>
+      <button type="button" class="ic" data-act="up" title="להזיז למעלה" aria-label="להזיז למעלה">${ICON.up}</button>
+      <button type="button" class="ic" data-act="down" title="להזיז למטה" aria-label="להזיז למטה">${ICON.down}</button>
+      <button type="button" class="ic" data-act="del" title="למחוק את הסבב" aria-label="למחוק את הסבב">${ICON.trash}</button>
+    </div>
+  </header>
+  <div class="tape-body">
+    <div class="two">
+      <label class="fld"><span>עוד שמות שנחשבים נכונים <em>· כינוי או איות אחר, מופרדים בפסיק</em></span><input type="text" data-f="aliases" id="ali-${id}" placeholder="למשל: הג׳ינג׳י, אורי" autocomplete="off" maxlength="160"></label>
+      <label class="fld"><span>מי זה בשבילו <em>· מופיע ליד הסרטון, לא חובה</em></span><input type="text" data-f="caption" id="cap-${id}" placeholder="למשל: המדריך מהצופים, 2009" autocomplete="off" maxlength="80"></label>
+    </div>
+    <div class="clues">${[0, 1, 2].map(i => `
+      <div class="clue">
+        <div class="clue-top"><b>רמז ${i + 1}</b><span>${['הכי קשה', 'בינוני', 'הכי קל'][i]}</span></div>
+        <div class="clue-media" data-x="m${i}" data-drop="clue" data-i="${i}"></div>
+        <textarea data-f="clue${i}" id="clue${i}-${id}" rows="2" placeholder="טקסט לרמז (לא חובה)" maxlength="160"></textarea>
+      </div>`).join('')}
+    </div>
+    <div class="vid" data-x="vid" data-drop="vid"></div>
+  </div>
+  <input type="file" accept="image/*,video/*,.gif,.mov,.m4v,.mp4,.webm" data-file="clue" id="fclue-${id}" hidden>
+  <input type="file" accept="video/*,.mov,.m4v,.mp4,.webm" data-file="vid" id="fvid-${id}" hidden>`;
+  S.cards.set(id, el);
+  return el;
+}
+function patchClue(el, r, i) {
+  const box = el.querySelector(`[data-x="m${i}"]`);
+  const busy = S.busy.get(`${r.id}:clue:${i}`);
+  const mid = r.clues[i].media, m = mid && M.get(mid);
+  const sig = busy ? 'busy' : (mid || '') + ':' + (m ? 1 : 0);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.classList.toggle('has', !!m && !busy);
+  if (busy) { box.innerHTML = `<div class="busy"><i class="spin"></i>שומר את הקובץ…</div>`; return; }
+  if (m) {
+    const gif = /gif/i.test(m.mime || '');
+    box.innerHTML = (m.kind === 'video'
+      ? `<video src="${m.url}" muted loop playsinline preload="metadata" data-hover></video><span class="kind">וידאו</span>`
+      : `<img src="${m.url}" alt="רמז ${i + 1}">${gif ? '<span class="kind">GIF</span>' : ''}`) +
+      `<div class="media-tools"><button type="button" class="mt" data-act="clue-pick" data-i="${i}">החלפה</button><button type="button" class="mt" data-act="clue-del" data-i="${i}">הסרה</button></div>`;
+    return;
+  }
+  box.innerHTML = mid
+    ? `<button type="button" class="media-add" data-act="clue-pick" data-i="${i}">${ICON.image}<span>הקובץ חסר במחשב הזה</span><small>בחרו אותו שוב</small></button>`
+    : `<button type="button" class="media-add" data-act="clue-pick" data-i="${i}">${ICON.image}<span>תמונה, GIF או סרטון</span><small>לחצו לבחירה או גררו לכאן</small></button>`;
+}
+function patchVid(el, r) {
+  const box = el.querySelector('[data-x="vid"]');
+  const busy = S.busy.get(r.id + ':vid');
+  const m = r.video && M.get(r.video);
+  const sig = busy ? 'busy' : (r.video || '') + ':' + (m ? 1 : 0);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.classList.toggle('has', !!m && !busy);
+  if (busy) { box.innerHTML = `<div class="busy" style="flex-direction:row;display:flex"><i class="spin"></i>שומר את הסרטון…</div>`; return; }
+  if (m) {
+    box.innerHTML = `<video src="${m.url}" controls preload="metadata" playsinline></video>
+      <div class="vid-meta"><b>${esc(m.name || 'הסרטון')}</b><span>${fmtMB(m.size || 0)}</span>
+      <div class="vid-actions"><button type="button" class="mt" data-act="vid-pick">החלפה</button><button type="button" class="mt" data-act="vid-del">הסרה</button></div></div>`;
+    return;
+  }
+  box.innerHTML = `<button type="button" class="media-add wide" data-act="vid-pick">${ICON.film}<span>${r.video ? 'הסרטון חסר במחשב הזה. בחרו אותו שוב' : 'הוספת הסרטון'}</span><small>MP4, MOV או WEBM, בכל גודל. הסרטון נשמר במחשב הזה ולא עולה לאינטרנט. אפשר גם לגרור לכאן.</small></button>`;
+}
+function patchStatus(el, r) {
+  const m = missing(r), chip = el.querySelector('[data-x="status"]');
+  chip.className = 'chip ' + (m.length ? 'warn' : 'ok');
+  chip.textContent = m.length ? 'חסר: ' + m.join(', ') : 'מוכן';
+}
+function patchCard(el, r, idx, total) {
+  el.querySelector('[data-x="no"]').textContent = pad(idx + 1);
+  setVal(el.querySelector('[data-f="name"]'), r.name);
+  setVal(el.querySelector('[data-f="aliases"]'), r.aliases);
+  setVal(el.querySelector('[data-f="caption"]'), r.caption);
+  r.clues.forEach((c, i) => { setVal(el.querySelector(`[data-f="clue${i}"]`), c.text); patchClue(el, r, i); });
+  patchVid(el, r);
+  patchStatus(el, r);
+  el.querySelector('[data-x="ex"]').hidden = !r.example;
+  el.querySelector('[data-act="up"]').disabled = idx === 0;
+  el.querySelector('[data-act="down"]').disabled = idx === total - 1;
+}
+function updateSummary() {
+  const ready = G.rounds.filter(r => !missing(r).length).length;
+  $('#roundCount').textContent = G.rounds.length ? `(${G.rounds.length})` : '';
+  $('#readyCount').textContent = G.rounds.length ? `${ready} מתוך ${G.rounds.length} מוכנים` : '';
+}
+function syncList() {
+  const list = $('#roundsList');
+  const ids = G.rounds.map(r => r.id);
+  for (const [id, el] of S.cards) if (!ids.includes(id)) { el.remove(); S.cards.delete(id); }
+  G.rounds.forEach((r, idx) => {
+    let el = S.cards.get(r.id);
+    if (!el) el = makeCard(r.id);
+    if (list.children[idx] !== el) list.insertBefore(el, list.children[idx] || null);
+    patchCard(el, r, idx, G.rounds.length);
+  });
+  $('#emptyState').hidden = G.rounds.length > 0;
+  updateSummary();
+}
+const findRound = id => G.rounds.find(r => r.id === id);
+function patchOne(id) {
+  const el = S.cards.get(id), r = findRound(id);
+  if (!el || !r) return;
+  patchCard(el, r, G.rounds.indexOf(r), G.rounds.length);
+  updateSummary();
+}
+function setBusy(key, on) { if (on) S.busy.set(key, 1); else S.busy.delete(key); patchOne(key.split(':')[0]); saveState(); }
+function armed(b, label) {
+  if (b.dataset.armed === '1') return true;
+  b.dataset.armed = '1';
+  const old = b.innerHTML;
+  b.classList.add('armed'); b.textContent = label;
+  setTimeout(() => { if (b.isConnected && b.dataset.armed === '1') { b.dataset.armed = ''; b.classList.remove('armed'); b.innerHTML = old; } }, 3000);
+  return false;
+}
+function kindOf(file) {
+  const t = (file.type || '').toLowerCase(), n = file.name || '';
+  if (t.startsWith('video/') || /\.(mov|m4v|mp4|webm)$/i.test(n)) return 'video';
+  if (t.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif|avif)$/i.test(n)) return 'image';
+  return null;
+}
+function probe(file, kind) {
+  const url = URL.createObjectURL(file);
+  return new Promise((res, rej) => {
+    let done = false;
+    const end = (ok, code) => { if (done) return; done = true; URL.revokeObjectURL(url); ok ? res() : rej({ code }); };
+    setTimeout(() => end(true), 15000);
+    if (kind === 'image') {
+      const im = new Image();
+      im.onload = () => end(true);
+      im.onerror = () => end(false, 'decode_image');
+      im.src = url;
+    } else {
+      const v = document.createElement('video');
+      v.muted = true; v.preload = 'auto';
+      const check = () => { if (v.videoWidth > 0) end(true); };
+      v.addEventListener('loadedmetadata', () => { check(); setTimeout(() => end(v.videoWidth > 0, 'decode_video'), 2500); });
+      v.addEventListener('loadeddata', check);
+      v.addEventListener('error', () => end(false, 'decode_video'));
+      v.src = url;
+    }
+  });
+}
+function errText(e) {
+  if (e && e.name === 'QuotaExceededError') return 'אין מספיק מקום בדפדפן לקובץ הזה. פנו מקום בדיסק ונסו שוב.';
+  return ({
+    decode_image: 'הדפדפן לא מצליח לפתוח את התמונה (אולי HEIC מאייפון). שמרו אותה כ-JPG ונסו שוב.',
+    decode_video: 'הדפדפן הזה לא מצליח לנגן את הסרטון (אולי HEVC מאייפון). המירו אותו ל-MP4 רגיל ונסו שוב.',
+    kind: 'אפשר להוסיף כאן תמונה, GIF או סרטון.',
+    kind_vid: 'זה לא נראה כמו קובץ וידאו.'
+  })[e && e.code] || 'שמירת הקובץ נכשלה. נסו שוב.';
+}
+async function onClueFile(id, i, file) {
+  const kind = kindOf(file);
+  const key = `${id}:clue:${i}`;
+  if (!kind) { toast(errText({ code: 'kind' })); return; }
+  if (S.busy.has(key)) return;
+  setBusy(key, true);
+  try {
+    await probe(file, kind);
+    const mid = await addMedia(file, kind, file.name);
+    const r = findRound(id);
+    if (!r) { await dropMedia(mid); return; }
+    const old = r.clues[i].media;
+    r.clues[i].media = mid;
+    saveGame(0);
+    await dropMedia(old);
+    updateUsage();
+  } catch (e) { toast(errText(e)); }
+  finally { setBusy(key, false); }
+}
+async function onVideoFile(id, file) {
+  const key = id + ':vid';
+  if (kindOf(file) !== 'video') { toast(errText({ code: 'kind_vid' })); return; }
+  if (S.busy.has(key)) return;
+  setBusy(key, true);
+  try {
+    await probe(file, 'video');
+    const mid = await addMedia(file, 'video', file.name);
+    const r = findRound(id);
+    if (!r) { await dropMedia(mid); return; }
+    const old = r.video;
+    r.video = mid;
+    saveGame(0);
+    await dropMedia(old);
+    updateUsage();
+    toast('הסרטון נשמר.');
+  } catch (e) { toast(errText(e)); }
+  finally { setBusy(key, false); }
+}
+function addRound() {
+  const r = newRound();
+  G.rounds.push(r);
+  saveGame(0); syncList();
+  const el = S.cards.get(r.id);
+  if (el) { el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); el.querySelector('[data-f="name"]').focus({ preventScroll: true }); }
+}
+function move(id, dir) {
+  const k = G.rounds.findIndex(r => r.id === id), j = k + dir;
+  if (k < 0 || j < 0 || j >= G.rounds.length) return;
+  [G.rounds[k], G.rounds[j]] = [G.rounds[j], G.rounds[k]];
+  saveGame(0); syncList();
+}
+async function deleteRound(id) {
+  const r = findRound(id); if (!r) return;
+  const media = [r.video, ...r.clues.map(c => c.media)].filter(Boolean);
+  G.rounds = G.rounds.filter(x => x.id !== id);
+  saveGame(0); syncList();
+  for (const m of media) await dropMedia(m);
+}
+function renderPlayers() {
+  const box = $('#players');
+  const cut = Date.now() - 18 * 3600 * 1000;
+  const list = [...S.players.values()].filter(p => p.ts > cut).sort((a, b) => a.ts - b.ts);
+  box.innerHTML = '<b>מי התחבר' + (list.length ? ` (${list.length})` : '') + ':</b>' +
+    (list.length ? list.map(p => `<span class="chip">${esc(p.name)}</span>`).join('') : '<span class="chip">עוד אף אחד</span>');
+  if (SH.on && SH.view === 'intro') renderLobbyPlayers();
+}
+
+function bindEditor() {
+  for (const inp of $$('[data-s]')) inp.addEventListener('input', () => { G.settings[inp.dataset.s] = inp.value; saveGame(); });
+  $('#addRound').addEventListener('click', addRound);
+  $('#startBtn').addEventListener('click', () => startShow(hasProgress() ? 'resume' : 'new'));
+  $('#restartBtn').addEventListener('click', e => { if (!armed(e.currentTarget, 'בטוח? התוצאות יימחקו')) return; startShow('new'); });
+  $('#resetLiveBtn').addEventListener('click', e => {
+    if (!armed(e.currentTarget, 'בטוח? למחוק את התוצאות')) return;
+    L = newLive(); saveLive(); syncSH(); publishState(); updateStartBtn(); toast('התוצאות אופסו. הטלפונים מתחילים מחדש.');
+  });
+  $$('[data-copy]').forEach(b => b.addEventListener('click', () => copyText(playURL(b.dataset.copy === 'groom'), b)));
+  const gq = $('#qrGroom');
+  const openGq = () => { gq.dataset.open = '1'; gq.classList.remove('veiled'); gq.removeAttribute('role'); gq.innerHTML = qrSVG(playURL(true)); };
+  gq.addEventListener('click', () => { if (gq.dataset.open !== '1') openGq(); });
+  gq.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && gq.dataset.open !== '1') { e.preventDefault(); openGq(); } });
+  $('#exportBtn').addEventListener('click', exportBackup);
+  $('#importBtn').addEventListener('click', e => { if (!armed(e.currentTarget, 'זה יחליף את המשחק הנוכחי. ללחוץ שוב')) return; const f = $('#importFile'); f.value = ''; f.click(); });
+  $('#importFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) importBackup(f); });
+
+  const list = $('#roundsList');
+  list.addEventListener('input', e => {
+    const f = e.target.dataset.f; if (!f) return;
+    const card = e.target.closest('.tape'); const r = card && findRound(card.dataset.id); if (!r) return;
+    if (f === 'name') { r.name = e.target.value; if (r.example) { r.example = false; card.querySelector('[data-x="ex"]').hidden = true; } }
+    else if (f === 'aliases') r.aliases = e.target.value;
+    else if (f === 'caption') r.caption = e.target.value;
+    else if (f.startsWith('clue')) r.clues[+f.slice(4)].text = e.target.value;
+    saveGame();
+    patchStatus(card, r); updateSummary();
+  });
+  list.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const card = b.closest('.tape'); const id = card && card.dataset.id; const r = findRound(id); if (!r) return;
+    const i = +b.dataset.i;
+    switch (b.dataset.act) {
+      case 'clue-pick': { const inp = card.querySelector('[data-file="clue"]'); inp.dataset.i = i; inp.value = ''; inp.click(); break; }
+      case 'clue-del': { if (!armed(b, 'בטוח?')) return; const old = r.clues[i].media; r.clues[i].media = null; saveGame(0); patchOne(id); await dropMedia(old); break; }
+      case 'vid-pick': { const inp = card.querySelector('[data-file="vid"]'); inp.value = ''; inp.click(); break; }
+      case 'vid-del': { if (!armed(b, 'בטוח?')) return; const old = r.video; r.video = null; saveGame(0); patchOne(id); await dropMedia(old); break; }
+      case 'up': move(id, -1); break;
+      case 'down': move(id, 1); break;
+      case 'del': if (!armed(b, 'למחוק?')) return; deleteRound(id); break;
+      case 'play-from': startShow({ rid: id }); break;
+    }
+  });
+  list.addEventListener('change', e => {
+    const k = e.target.dataset.file; if (!k) return;
+    const id = e.target.closest('.tape').dataset.id;
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    if (k === 'clue') onClueFile(id, +e.target.dataset.i, f); else onVideoFile(id, f);
+  });
+  list.addEventListener('dragover', e => { const z = e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.classList.add('over'); });
+  list.addEventListener('dragleave', e => { const z = e.target.closest('[data-drop]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('over'); });
+  list.addEventListener('drop', e => {
+    const z = e.target.closest('[data-drop]'); if (!z) return;
+    e.preventDefault(); z.classList.remove('over');
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return;
+    const id = z.closest('.tape').dataset.id;
+    if (z.dataset.drop === 'clue') onClueFile(id, +z.dataset.i, f); else onVideoFile(id, f);
+  });
+  list.addEventListener('mouseover', e => { const v = e.target.closest('video[data-hover]'); if (v) v.play().catch(() => {}); });
+  list.addEventListener('mouseout', e => { const v = e.target.closest('video[data-hover]'); if (v && !v.contains(e.relatedTarget)) v.pause(); });
+}
+
+/* ---------- backup file ---------- */
+const MAGIC = 'KALTOT01';
+async function exportBackup() {
+  const btn = $('#exportBtn'); btn.disabled = true;
+  try {
+    const ids = new Set(); G.rounds.forEach(r => { if (r.video) ids.add(r.video); r.clues.forEach(c => { if (c.media) ids.add(c.media); }); });
+    const index = [], parts = []; let off = 0;
+    for (const id of ids) {
+      const rec = await IDB.get('media', id); if (!rec || !rec.blob) continue;
+      index.push({ id, kind: rec.kind, mime: rec.mime || rec.blob.type || '', name: rec.name || '', size: rec.blob.size, off });
+      parts.push(rec.blob); off += rec.blob.size;
+    }
+    const head = new TextEncoder().encode(JSON.stringify({ v: 1, game: G, media: index }));
+    const len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, head.length);
+    const blob = new Blob([MAGIC, len, head, ...parts], { type: 'application/octet-stream' });
+    const a = document.createElement('a');
+    const d = new Date();
+    a.href = URL.createObjectURL(blob); a.download = `kaltot-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.kaltot`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    toast(`הגיבוי נשמר (${fmtMB(blob.size)}).`);
+  } catch (e) { toast('שמירת הגיבוי נכשלה.'); }
+  finally { btn.disabled = false; }
+}
+async function importBackup(file) {
+  try {
+    const magic = await file.slice(0, 8).text();
+    if (magic !== MAGIC) { toast('זה לא קובץ גיבוי של המשחק.'); return; }
+    const len = new DataView(await file.slice(8, 12).arrayBuffer()).getUint32(0);
+    const head = JSON.parse(await file.slice(12, 12 + len).text());
+    const base = 12 + len;
+    toast('טוען את הגיבוי…', 60000);
+    for (const m of head.media || []) {
+      const blob = new Blob([file.slice(base + m.off, base + m.off + m.size)], { type: m.mime || '' });
+      await IDB.put('media', m.id, { blob, kind: m.kind, mime: m.mime, name: m.name });
+    }
+    const game = normGame(head.game);
+    await IDB.put('kv', 'game', game);
+    const keep = new Set((head.media || []).map(m => m.id));
+    for (const k of await IDB.keys('media')) if (!keep.has(k)) await IDB.del('media', k);
+    await IDB.put('kv', 'live', newLive());
+    location.reload();
+  } catch (e) { toast('טעינת הגיבוי נכשלה. ' + (e && e.name === 'QuotaExceededError' ? 'אין מספיק מקום בדפדפן.' : 'בדקו שזה הקובץ הנכון.')); }
+}
+
+/* ---------- relay (phones) ---------- */
+let relay = null;
+const base = () => `kaltot/v1/${G.settings.code}`;
+function startRelay() {
+  if (!window.mqtt) { $('#netState').className = 'pill err'; $('#netState').textContent = 'אין חיבור לטלפונים'; return; }
+  relay = new K.Relay({
+    subs: [`${base()}/p/+`, `${base()}/g/#`, `${base()}/x/${G.settings.groomKey}/#`],
+    onMessage: onRelay,
+    onStatus: (n, total) => {
+      const el = $('#netState');
+      el.className = 'pill' + (n ? '' : ' err');
+      el.textContent = n ? 'מחובר לטלפונים' : 'אין חיבור לטלפונים';
+      const was = onRelay.n || 0; onRelay.n = n;
+      if (n && !was) publishState(true);
+      if (SH.on) setNetOSD(n, total);
+    }
+  });
+}
+function onRelay(topic, d) {
+  const p = topic.split('/');
+  if (p[2] !== G.settings.code) return;
+  const kind = p[3];
+  if (kind === 'p' && p[4]) {
+    S.players.set(p[4], { name: clip(d.name, 24) || 'בלי שם', ts: +d.ts || Date.now() });
+    renderPlayers();
+  } else if (kind === 'g' && p.length === 7) onFriendGuess(p[4], p[5], p[6], d);
+  else if (kind === 'x' && p[4] === G.settings.groomKey && p.length === 8) onGroomMsg(p[5], p[6], +p[7], d);
+}
+function onFriendGuess(session, rid, pid, d) {
+  if (session !== L.session || L.locked[rid]) return;
+  const F = L.friends[rid] || (L.friends[rid] = {});
+  if (F[pid]) return;
+  const r = findRound(rid); if (!r) return;
+  const guess = clip(d.guess, 40); if (!guess) return;
+  F[pid] = { name: clip(d.name, 24) || 'בלי שם', guess, ts: Date.now(), ok: K.judge(guess, r.name, r.aliases) };
+  if (!S.players.has(pid)) { S.players.set(pid, { name: F[pid].name, ts: Date.now() }); renderPlayers(); }
+  saveLive(); publishState();
+  if (SH.on && SH.view === 'board' && curRound() && curRound().id === rid) updateCount();
+}
+function onGroomMsg(session, rid, stage, d) {
+  if (session !== L.session || !d.id || L.processed[d.id]) return;
+  const r = curRound();
+  if (!SH.on || SH.view !== 'board' || !r || r.id !== rid || SH.stage !== stage) return;
+  groomGuess(clip(d.guess, 40), String(d.id).slice(0, 40));
+}
+
+/* ---------- state for the phones ---------- */
+let lastRev = 0, pubT = 0;
+function publishState(now) {
+  if (!relay) return;
+  clearTimeout(pubT);
+  pubT = setTimeout(() => {
+    const st = stateMsg();
+    relay.publish(`${base()}/state`, st, true).catch(() => {});
+  }, now ? 0 : 120);
+}
+function stateMsg() {
+  const rev = lastRev = Math.max(Date.now(), lastRev + 1);
+  const named = SH.rounds.length ? SH.rounds.length : G.rounds.filter(r => r.name.trim()).length;
+  const st = { v: 1, rev, session: L.session, title: G.settings.title || DEFAULT_SETTINGS.title, groom: G.settings.groom || '', total: named, view: 'lobby' };
+  const v = SH.view, r = curRound();
+  if (!r || v === 'intro') return st;
+  const map = { board: 'round', friends: 'locked', countdown: 'locked', reveal: 'reveal', end: 'end' };
+  st.view = map[v] || 'lobby';
+  if (v === 'end') {
+    st.score = { groom: SH.rounds.filter(x => L.results[x.id] && L.results[x.id].ok).length, total: SH.rounds.length };
+    st.scores = friendScores();
+    return st;
+  }
+  const res = L.results[r.id], used = L.used[r.id] || {};
+  st.round = { id: r.id, n: SH.ri + 1, stage: SH.stage, nClues: r.clues.length, pattern: patternWithLetters(r) };
+  st.open = v === 'board' && !L.locked[r.id];
+  st.groomOpen = SH.on && v === 'board' && !SH.verdict && !(res && res.ok) && !used[SH.stage];
+  st.groomLast = L.groomLast && L.groomLast.rid === r.id ? { id: L.groomLast.id, ok: L.groomLast.ok } : null;
+  st.got = Object.keys(L.friends[r.id] || {});
+  if (v === 'reveal') {
+    st.answer = r.name;
+    st.right = Object.entries(L.friends[r.id] || {}).filter(([, f]) => f.ok).map(([pid]) => pid);
+    st.groomOk = !!(res && res.ok);
+  }
+  return st;
+}
+function patternWithLetters(r) {
+  const chars = [...r.name.trim()], set = new Set(L.letters[r.id] || []);
+  return chars.map((ch, i) => /\s/.test(ch) ? ' ' : K.isLetter(ch) ? (set.has(i) ? ch : '_') : ch).join('').replace(/ +/g, ' ');
+}
+function friendScores() {
+  const sc = {};
+  for (const r of SH.rounds) for (const [pid, f] of Object.entries(L.friends[r.id] || {})) {
+    if (!sc[pid]) sc[pid] = { name: f.name, n: 0 };
+    sc[pid].name = f.name;
+    if (f.ok) sc[pid].n++;
+  }
+  return sc;
+}
+
+/* ================= the show ================= */
+const stage = $('#stage'), scr = $('#scr');
+const SH = { on: false, rounds: [], view: 'intro', ri: 0, stage: 0, verdict: null, hist: [], timers: [], vTimer: 0, videos: new Map(), clock: 0, wake: null, key: '', sound: true };
+const curRound = () => SH.rounds[SH.ri];
+const later = (fn, ms) => SH.timers.push(setTimeout(fn, ms));
+const clearTimers = () => { SH.timers.forEach(clearTimeout); SH.timers = []; };
+
+function buildRounds() {
+  SH.rounds = G.rounds.filter(r => r.name.trim()).map(r => ({
+    id: r.id, name: r.name.trim(), aliases: r.aliases, caption: r.caption.trim(),
+    clues: r.clues.filter(c => (c.media && M.get(c.media)) || c.text.trim()).map(c => ({ media: c.media && M.get(c.media) ? c.media : null, text: c.text.trim() })),
+    video: r.video && M.get(r.video) ? r.video : null
+  }));
+}
+function syncSH() {
+  for (const v of SH.videos.values()) v.pause();
+  SH.videos.clear();
+  buildRounds();
+  const p = L.pos || {};
+  let ri = SH.rounds.findIndex(r => r.id === p.rid);
+  let view = p.view || 'intro';
+  if (ri < 0) { ri = 0; if (view !== 'end') view = 'intro'; }
+  if (view === 'countdown') view = 'reveal';
+  SH.view = view; SH.ri = ri;
+  const r = SH.rounds[ri];
+  SH.stage = r ? Math.min(p.stage || 0, r.clues.length) : 0;
+  SH.verdict = null; SH.hist = []; SH.key = '';
+}
+function hasProgress() { return !!(L && L.pos && L.pos.view && L.pos.view !== 'intro' && L.pos.view !== 'end'); }
+function updateStartBtn() {
+  const sb = $('#startBtn'), prog = hasProgress();
+  if (prog) {
+    const ri = SH.rounds.findIndex(r => r.id === L.pos.rid);
+    sb.textContent = `${TRI} המשך המשחק` + (ri >= 0 ? ` (קלטת ${ri + 1})` : '');
+  } else sb.textContent = `${TRI} התחלת המשחק`;
+  $('#restartBtn').hidden = !prog && !(L.pos && L.pos.view === 'end');
+}
+
+let AC = null;
+function audio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
+  return AC;
+}
+function tone(freq, start, dur, type, vol) {
+  const ac = SH.sound && audio(); if (!ac) return;
+  try {
+    const t = ac.currentTime + start, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.22, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.05);
+    return o;
+  } catch (e) {}
+}
+const sfx = {
+  beep: () => tone(880, 0, 0.16, 'sine', 0.25),
+  win: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.35, 'triangle', 0.2)); },
+  fish: () => { const o = tone(330, 0, 0.32, 'sawtooth', 0.12); if (o) o.frequency.exponentialRampToValueAtTime(180, AC.currentTime + 0.3); const o2 = tone(220, 0.34, 0.5, 'sawtooth', 0.12); if (o2) o2.frequency.exponentialRampToValueAtTime(110, AC.currentTime + 0.84); }
+};
+
+function startShow(mode) {
+  if (mode === 'new') { L = newLive(); }
+  syncSH();
+  if (!SH.rounds.length) { toast('עוד אין אף אחד עם שם. הוסיפו לפחות אדם אחד.'); return; }
+  if (mode && mode.rid) {
+    const ri = SH.rounds.findIndex(r => r.id === mode.rid);
+    if (ri < 0) { toast('לסבב הזה עוד אין שם, אז הוא לא נכנס למשחק.'); return; }
+    SH.ri = ri; SH.view = 'board'; SH.stage = 0;
+    const rid = SH.rounds[ri].id;
+    delete L.results[rid]; delete L.used[rid]; delete L.locked[rid]; delete L.letters[rid];
+  }
+  if (!L.t0) L.t0 = Date.now();
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  stage.hidden = false; document.body.classList.add('showing');
+  SH.on = true;
+  audio();
+  try { const p = stage.requestFullscreen && stage.requestFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  requestWake();
+  clearInterval(SH.clock);
+  const tick = () => { const s = Math.floor((Date.now() - L.t0) / 1000); $('#osdClock').firstChild.textContent = `SP ${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; };
+  $('#osdClock').innerHTML = '<span></span> <span class="net"></span>';
+  tick(); SH.clock = setInterval(tick, 1000);
+  setNetOSD(relay ? relay.connected() : 0, relay ? relay.clients.length : 0);
+  SH.key = '';
+  wakeBar();
+  commit(1);
+  stage.focus({ preventScroll: true });
+}
+function exitShow() {
+  SH.on = false; clearTimers(); clearTimeout(SH.vTimer); closeZoom(); closeTyper();
+  if (SH.verdict) afterVerdict(true);
+  pauseAll();
+  stage.hidden = true; document.body.classList.remove('showing');
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  clearInterval(SH.clock);
+  try { if (SH.wake) SH.wake.release(); } catch (e) {}
+  SH.wake = null;
+  updateStartBtn();
+}
+async function requestWake() { try { if (navigator.wakeLock) SH.wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (SH.on && document.visibilityState === 'visible') requestWake(); });
+function toggleFs() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else if (stage.requestFullscreen) stage.requestFullscreen().catch(() => toast('הדפדפן לא מאפשר מסך מלא כאן.'));
+  } catch (e) {}
+}
+document.addEventListener('fullscreenchange', () => { $('#hbFs').innerHTML = (document.fullscreenElement ? 'יציאה ממסך מלא' : 'מסך מלא') + ' <kbd>F</kbd>'; });
+function setNetOSD(n, total) {
+  const el = $('#osdClock .net'); if (!el) return;
+  el.textContent = `NET ${n}/${total || 2}`;
+  el.className = 'net' + (n ? '' : ' neterr');
+}
+function pauseAll() {
+  for (const v of SH.videos.values()) v.pause();
+  $$('video', scr).forEach(v => v.pause());
+}
+
+/* OSD */
+let osdHold = 0;
+function setOSD(t, holdMs) {
+  const el = $('#osdMode');
+  if (holdMs) { el.textContent = t; osdHold = Date.now() + holdMs; setTimeout(() => { if (Date.now() >= osdHold) el.textContent = baseOSD(); }, holdMs); return; }
+  if (Date.now() < osdHold) return;
+  el.textContent = t;
+}
+function baseOSD() {
+  if (SH.view === 'reveal') { const v = SH.videos.get(SH.ri); if (v && v.ended) return 'STOP ■'; if (v && v.paused && v.currentTime > 0) return 'PAUSE ❚❚'; }
+  if (SH.view === 'countdown') return 'REW ◀︎◀︎';
+  return 'PLAY ' + TRI;
+}
+
+/* building blocks */
+function casHTML(main, sub, right) {
+  return `<div class="cas${reduced ? '' : ' spin'}"><div class="cas-label"><div class="cas-stripe"><span>VHS</span><span>${esc(right || 'T-120')}</span></div>` +
+    `<div class="cas-text"><span>${esc(main)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></div></div>` +
+    `<div class="cas-win"><i class="reel"></i><i class="reel thin"></i></div></div>`;
+}
+function cellVars(name) {
+  const chars = [...name];
+  const Lc = Math.max(1, chars.filter(K.isLetter).length);
+  const words = Math.max(1, name.split(/\s+/).filter(Boolean).length);
+  const units = Lc * 1.2 + (words - 1) * 0.8 + 0.6;
+  const n = Math.min(5.2, 84 / units), s = Math.min(4.2, 72 / units);
+  return `--cell-n:min(${n.toFixed(2)}vw,8vh);--cell-s:min(${s.toFixed(2)}vw,6.4vh)`;
+}
+function blanksHTML(name, rev, opt) {
+  opt = opt || {}; rev = rev || new Set();
+  const chars = [...name];
+  const words = []; let w = '', k = 0;
+  chars.forEach((ch, i) => {
+    if (/\s/.test(ch)) { if (w) words.push(w); w = ''; return; }
+    if (!K.isLetter(ch)) { w += `<span class="bl punct"><b>${esc(ch)}</b></span>`; return; }
+    const got = rev.has(i), show = got || opt.fill;
+    let cls = 'bl', style = '';
+    if (got) cls += ' got';
+    if (i === opt.pop) cls += ' pop';
+    if (opt.fill && !got) { cls += ' fill'; style = ` style="--d:${reduced || opt.instant ? 0 : (k++) * 70}ms"`; }
+    w += `<span class="${cls}"${style}><b>${show ? esc(ch) : ''}</b></span>`;
+  });
+  if (w) words.push(w);
+  const dir = /[֐-׿]/.test(name) ? 'rtl' : 'ltr';
+  return `<div class="blanks" dir="${dir}" style="${cellVars(name)}" aria-label="${opt.fill ? esc(name) : 'שם מוסתר'}">${words.map(x => `<span class="word">${x}</span>`).join('')}</div>`;
+}
+function clueFront(c, j) {
+  const m = c.media && M.get(c.media);
+  const len = (c.text || '').length;
+  let photo;
+  if (m && m.kind === 'video') photo = `<div class="pol-photo"><video class="fg" data-cv="${j}" src="${m.url}" playsinline preload="auto"></video><span class="vid-badge">${TRI} REC</span></div>`;
+  else if (m) photo = `<div class="pol-photo"><img class="bg" src="${m.url}" alt=""><img class="fg" src="${m.url}" alt="רמז ${j + 1}"></div>`;
+  else photo = `<div class="pol-photo txt${len > 110 ? ' xl' : len > 55 ? ' long' : ''}"><p>${esc(c.text)}</p></div>`;
+  return photo + `<figcaption class="pol-cap">${m && c.text ? esc(c.text) : ''}</figcaption>`;
+}
+function polHTML(c, j, rot) {
+  return `<figure class="pol" data-j="${j}" style="--rot:${rot}deg"><div class="pol-in"><div class="pol-front">${clueFront(c, j)}</div>` +
+    `<div class="pol-back"><span class="q">?</span><span class="no">רמז ${j + 1}</span></div></div></figure>`;
+}
+function staticHTML(msg) { return `<canvas class="static" width="160" height="90"></canvas><div class="static-msg">${esc(msg)}</div>`; }
+function startStatic() {
+  const cv = scr.querySelector('canvas.static'); if (!cv) return;
+  const x = cv.getContext('2d'), img = x.createImageData(160, 90); let last = 0;
+  const paint = () => { for (let p = 0; p < img.data.length; p += 4) { const g = Math.random() * 190 | 0; img.data[p] = g; img.data[p + 1] = g; img.data[p + 2] = g + 12; img.data[p + 3] = 255; } x.putImageData(img, 0, 0); };
+  paint();
+  if (reduced) return;
+  const tick = t => { if (!cv.isConnected) return; if (t - last > 70) { last = t; paint(); } requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+const FISH = `<svg viewBox="0 0 120 70" aria-hidden="true"><path d="M98 35 L119 14 L114 35 L119 56 Z" fill="var(--fish)"/><ellipse cx="56" cy="35" rx="46" ry="27" fill="var(--fish)"/><path d="M50 9 Q62 0 74 10" fill="var(--fish)"/><path d="M52 40 Q60 52 70 44" fill="none" stroke="var(--tape)" stroke-width="2.4" stroke-linecap="round" opacity=".55"/><circle cx="26" cy="29" r="7.5" fill="var(--paper)"/><circle cx="24.5" cy="29" r="3.6" fill="var(--tape)"/><path d="M12 42 Q16 46 21 43" fill="none" stroke="var(--tape)" stroke-width="2.4" stroke-linecap="round"/><circle cx="4" cy="22" r="3" fill="none" stroke="var(--osd)" stroke-width="1.6"/><circle cx="8" cy="12" r="2" fill="none" stroke="var(--osd)" stroke-width="1.4"/></svg>`;
+
+/* screens */
+function lobbyHTML() {
+  const s = G.settings, url = playURL(false);
+  return `<div class="lobby">
+    <div class="lb-main">${casHTML(s.title || DEFAULT_SETTINGS.title, s.groom ? `המשחק של ${s.groom}` : '', 'SP')}
+      ${s.subtitle ? `<p class="intro-sub">${esc(s.subtitle)}</p>` : ''}</div>
+    <aside class="lb-join"><h2>נחשו מהטלפון</h2><div class="qr-big">${qrSVG(url)}</div><div class="lb-url">${esc(prettyURL(url))}</div>
+      <p class="lb-joined" id="lbJoined"></p><ul class="lb-names" id="lbNames"></ul></aside></div>`;
+}
+function renderLobbyPlayers() {
+  const j = $('#lbJoined'), ul = $('#lbNames'); if (!j || !ul) return;
+  const cut = Date.now() - 18 * 3600 * 1000;
+  const list = [...S.players.values()].filter(p => p.ts > cut).sort((a, b) => a.ts - b.ts);
+  j.textContent = list.length ? (list.length === 1 ? 'חבר אחד התחבר' : `${list.length} חברים התחברו`) : 'עוד אף אחד לא התחבר';
+  ul.innerHTML = list.slice(-24).map(p => `<li>${esc(p.name)}</li>`).join('');
+}
+function boardHTML() {
+  const r = curRound(), n = r.clues.length, rots = [-2.2, 1.8, -1.1];
+  return `<section class="board" data-n="${n}">
+    <header class="b-head"><span class="b-tape">קלטת ${SH.ri + 1}</span><span class="b-dot">/</span><span class="b-step" id="bStep"></span><span class="b-count" id="bCount" hidden></span></header>
+    <div class="blanks-wrap" id="blanksWrap"></div>
+    <div class="cards-wrap">${n ? `<div class="cards">${r.clues.map((c, j) => polHTML(c, j, rots[j % 3])).join('')}</div>` : ''}<div class="verdict" id="verdict" hidden></div></div>
+  </section>`;
+}
+function friendsHTML() {
+  const r = curRound();
+  const list = Object.values(L.friends[r.id] || {}).sort((a, b) => a.ts - b.ts);
+  const n = list.length;
+  const fs = n <= 4 ? 7.5 : n <= 8 ? 6 : n <= 14 ? 4.6 : n <= 22 ? 3.6 : 2.8;
+  const rots = [-2.4, 1.6, -1, 2.2, -1.8, 0.8];
+  return `<section class="friends"><h2 class="fr-title">זה מה שהזרעים חשבו</h2>
+    <ul class="fr-grid" style="--fs:${fs}vh">${list.map((f, i) => `<li class="note" style="--rot:${rots[i % rots.length]}deg;--d:${reduced ? 0 : Math.min(i * 110, 2400)}ms"><span class="fr-name">${esc(f.name)}</span><span class="fr-guess">${esc(f.guess)}</span></li>`).join('')}</ul></section>`;
+}
+function resText(res) {
+  if (!res) return '–';
+  if (!res.ok) return 'לא זיהה';
+  if (res.at === 0) return 'זיהה בלי רמזים!';
+  return `זיהה ברמז ${res.at}`;
+}
+function revealHTML() {
+  const r = curRound(), res = L.results[r.id];
+  const fr = Object.values(L.friends[r.id] || {});
+  const right = fr.filter(f => f.ok).map(f => f.name);
+  const frLine = !fr.length ? '' : right.length ? `<div class="rv-friends">מהזרעים צדקו: <b>${right.map(esc).join(', ')}</b></div>` : `<div class="rv-friends">אף אחד מהזרעים לא צדק</div>`;
+  return `<section class="reveal">
+    <div class="rv-top">
+      <div class="rv-kicker">בקלטת מס' ${SH.ri + 1}:</div>
+      ${blanksHTML(r.name, new Set(L.letters[r.id] || []), { fill: true })}
+      <div class="rv-meta">${r.caption ? `<div class="rv-cap">${esc(r.caption)}</div>` : ''}<div class="stamp${res && res.ok ? '' : ' bad'}" id="stamp">${esc(resText(res))}</div></div>
+      ${frLine}
+    </div>
+    <div class="rv-media"><div class="tv" id="tv">${r.video ? '' : staticHTML('אין סרטון לסבב הזה')}<button type="button" class="tv-play" id="tvPlay" hidden aria-label="ניגון">${TRI}</button></div></div>
+  </section>`;
+}
+function endHTML() {
+  const n = SH.rounds.length;
+  const ok = SH.rounds.filter(r => L.results[r.id] && L.results[r.id].ok).length;
+  const g = G.settings.groom || 'החתן';
+  const sc = Object.values(friendScores()).sort((a, b) => b.n - a.n).slice(0, 8);
+  const top = sc.length ? sc[0].n : 0;
+  return `<div class="end"><div class="end-k">סוף הקלטת</div>
+    <h2 class="end-score">${esc(g)} זיהה <b>${ok}</b> מתוך ${n}</h2>
+    <div class="end-cols">
+      <div class="end-col"><h3>הקלטות</h3><ul class="end-list">${SH.rounds.map(r => { const res = L.results[r.id]; return `<li class="${res ? (res.ok ? 'ok' : 'bad') : ''}"><span class="nm">${esc(r.name)}</span><span class="rs">${esc(resText(res))}</span></li>`; }).join('')}</ul></div>
+      ${sc.length ? `<div class="end-col"><h3>הזרעים שצדקו הכי הרבה</h3><ul class="end-list">${sc.map(f => `<li class="${f.n === top && top > 0 ? 'top' : ''}"><span class="nm">${esc(f.name)}</span><span class="rs">${f.n} מתוך ${n}</span></li>`).join('')}</ul></div>` : ''}
+    </div></div>`;
+}
+
+/* history (for the back key) */
+function snap() {
+  const r = curRound(), id = r && r.id;
+  return { view: SH.view, ri: SH.ri, stage: SH.stage, rid: id, res: id ? clone(L.results[id]) : null, used: id ? clone(L.used[id]) : null, locked: id ? !!L.locked[id] : false, groomLast: clone(L.groomLast) };
+}
+function pushHist() { SH.hist.push(snap()); if (SH.hist.length > 80) SH.hist.shift(); }
+function restore(h) {
+  SH.view = h.view; SH.ri = h.ri; SH.stage = h.stage;
+  if (h.rid) {
+    if (h.res) L.results[h.rid] = h.res; else delete L.results[h.rid];
+    if (h.used) L.used[h.rid] = h.used; else delete L.used[h.rid];
+    if (h.locked) L.locked[h.rid] = true; else delete L.locked[h.rid];
+  }
+  L.groomLast = h.groomLast;
+}
+
+/* commit the current position: save, tell the phones, draw */
+function commit(dir) {
+  const r = curRound();
+  L.pos = { view: SH.view, rid: r ? r.id : null, stage: SH.stage };
+  saveLive(); publishState();
+  render(dir);
+}
+function setView(key, html, force) { if (force || SH.key !== key) { scr.innerHTML = html; SH.key = key; return true; } return false; }
+function render(dir) {
+  clearTimers();
+  if (!SH.verdict) hideVerdictLayer();
+  const r = curRound();
+  $('#osdCh').textContent = SH.view !== 'intro' && r ? `CH ${pad(SH.ri + 1)}/${pad(SH.rounds.length)}` : `CH --/${pad(SH.rounds.length)}`;
+  stage.dataset.view = SH.view;
+  if (SH.view !== 'reveal') for (const v of SH.videos.values()) v.pause();
+  if (SH.view === 'intro') { setView('intro', lobbyHTML()); renderLobbyPlayers(); }
+  else if (SH.view === 'board') {
+    const fresh = setView('board' + SH.ri, boardHTML());
+    const b = $('.board', scr);
+    if (fresh && dir < 0) b.classList.add('no-anim');
+    if (fresh) void scr.offsetWidth;
+    updateBoard(dir, fresh);
+    if (fresh && dir < 0) { void scr.offsetWidth; b.classList.remove('no-anim'); }
+    warmVideo(SH.ri);
+  }
+  else if (SH.view === 'friends') setView('friends' + SH.ri, friendsHTML(), true);
+  else if (SH.view === 'countdown') runCountdown();
+  else if (SH.view === 'reveal') { setView('reveal' + SH.ri, revealHTML(), true); runReveal(dir); }
+  else setView('end', endHTML(), true);
+  setOSD(baseOSD());
+  setCue();
+}
+function updateBoard(dir, fresh) {
+  const r = curRound(), n = r.clues.length, s = SH.stage;
+  const res = L.results[r.id];
+  $$('.pol', scr).forEach((el, j) => {
+    const was = el.classList.contains('up');
+    el.classList.toggle('up', j < s);
+    el.classList.toggle('new', dir > 0 && j === s - 1);
+    const v = el.querySelector('video[data-cv]');
+    if (v) {
+      if (j < s && dir > 0 && j === s - 1 && !was) playClueVideo(v, true);
+      else if (j < s && (fresh || !was)) playClueVideo(v, false);
+      else if (j >= s) v.pause();
+    }
+  });
+  $('#blanksWrap').innerHTML = blanksHTML(r.name, new Set(L.letters[r.id] || []), { pop: SH.popLetter, fill: !!(res && res.ok), instant: dir < 0 });
+  SH.popLetter = -1;
+  $('#bStep').textContent = n === 0 ? 'רק האותיות' : s === 0 ? 'מי זה?' : `רמז ${s} מתוך ${n}`;
+  updateCount();
+}
+function updateCount() {
+  const el = $('#bCount'); if (!el) return;
+  const r = curRound(); const c = Object.keys(L.friends[r.id] || {}).length;
+  el.hidden = !c;
+  el.textContent = c === 1 ? 'זרע אחד ניחש' : `${c} זרעים ניחשו`;
+}
+function playClueVideo(v, withSound) {
+  $$('video[data-cv]', scr).forEach(o => { if (o !== v) o.muted = true; });
+  v.loop = false;
+  v.muted = !withSound;
+  v.onended = () => { v.muted = true; v.loop = true; v.play().catch(() => {}); };
+  if (withSound) { try { v.currentTime = 0; } catch (e) {} }
+  else v.loop = true;
+  v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+}
+
+/* verdicts */
+function hideVerdictLayer() { const v = $('#verdict'); if (v) { v.hidden = true; v.innerHTML = ''; } }
+function showVerdict(ok, text, sub) {
+  SH.verdict = { ok, text, sub };
+  const el = $('#verdict'); if (!el) return;
+  el.className = 'verdict ' + (ok ? 'win' : 'fish');
+  el.hidden = false;
+  el.innerHTML = ok
+    ? `<p class="vd-word">כל הכבוד!</p>${text ? `<p class="vd-guess">«${esc(text)}»</p>` : ''}${sub ? `<p class="vd-sub">${esc(sub)}</p>` : ''}`
+    : `${reduced ? '' : `<div class="fishy">${FISH}</div><div class="fishy two">${FISH}</div>`}<p class="vd-word">איזה דג!</p>${text ? `<p class="vd-guess"><s>«${esc(text)}»</s></p>` : ''}${sub ? `<p class="vd-sub">${esc(sub)}</p>` : ''}`;
+  $$('video[data-cv]', scr).forEach(v => { v.muted = true; });
+  if (ok) { sfx.win(); confetti(); setOSD('★ HIT', 1600); } else { sfx.fish(); setOSD('MISS', 1600); }
+  updateBoard(0);
+  clearTimeout(SH.vTimer);
+  SH.vTimer = setTimeout(() => afterVerdict(), ok ? 3600 : 3000);
+  publishState();
+  setCue();
+}
+function afterVerdict(silent) {
+  clearTimeout(SH.vTimer);
+  const v = SH.verdict; if (!v) return;
+  SH.verdict = null;
+  hideVerdictLayer();
+  if (silent) { publishState(); return; }
+  const r = curRound(), res = L.results[r.id];
+  if ((res && res.ok) || SH.stage >= r.clues.length) finale();
+  else { SH.stage++; commit(1); }
+}
+function finale() {
+  const r = curRound();
+  if (!L.results[r.id]) L.results[r.id] = { ok: false, guess: '' };
+  L.locked[r.id] = true;
+  SH.view = Object.keys(L.friends[r.id] || {}).length ? 'friends' : 'countdown';
+  commit(1);
+}
+function groomGuess(text, id) {
+  if (!SH.on || SH.view !== 'board' || SH.verdict) return false;
+  const r = curRound(), res = L.results[r.id];
+  if (res && res.ok) return false;
+  const used = L.used[r.id] || (L.used[r.id] = {});
+  if (used[SH.stage]) return false;
+  text = clip(text, 40); if (!text) return false;
+  pushHist();
+  used[SH.stage] = true;
+  if (id) L.processed[id] = 1;
+  const ok = K.judge(text, r.name, r.aliases);
+  (L.groomLog[r.id] || (L.groomLog[r.id] = [])).push({ stage: SH.stage, guess: text, ok });
+  L.groomLast = { rid: r.id, id: id || 'host' + Date.now(), ok };
+  if (ok) L.results[r.id] = { ok: true, at: SH.stage, guess: text };
+  else if (SH.stage >= r.clues.length) L.results[r.id] = { ok: false, guess: text };
+  saveLive();
+  const last = SH.stage >= r.clues.length;
+  showVerdict(ok, text, ok ? '' : last ? 'נגמרו הרמזים' : 'ממשיכים לרמז הבא');
+  return true;
+}
+/* host overrides: G = he was right, D = he was wrong */
+function markRight() {
+  const r = curRound(); if (!r) return;
+  if (SH.view === 'board') {
+    if (SH.verdict && SH.verdict.ok) return;
+    if (!SH.verdict) pushHist();
+    const used = L.used[r.id] || (L.used[r.id] = {}); used[SH.stage] = true;
+    const text = SH.verdict ? SH.verdict.text : '';
+    L.results[r.id] = { ok: true, at: SH.stage, guess: text };
+    L.groomLast = { rid: r.id, id: (L.groomLast && L.groomLast.rid === r.id && SH.verdict) ? L.groomLast.id : 'host' + Date.now(), ok: true };
+    saveLive();
+    showVerdict(true, text, '');
+  } else if (['friends', 'countdown', 'reveal'].includes(SH.view)) {
+    const prev = L.results[r.id];
+    L.results[r.id] = { ok: true, at: prev && prev.at != null ? prev.at : r.clues.length, guess: prev ? prev.guess : '' };
+    saveLive(); publishState(); updateStamp();
+    if (SH.view === 'reveal') { sfx.win(); confetti(); }
+  }
+}
+function markWrong() {
+  const r = curRound(); if (!r) return;
+  if (SH.view === 'board') {
+    if (SH.verdict && !SH.verdict.ok) return;
+    if (!SH.verdict) pushHist();
+    const used = L.used[r.id] || (L.used[r.id] = {}); used[SH.stage] = true;
+    const last = SH.stage >= r.clues.length;
+    const text = SH.verdict ? SH.verdict.text : '';
+    if (last) L.results[r.id] = { ok: false, guess: text }; else delete L.results[r.id];
+    if (L.groomLast && L.groomLast.rid === r.id && SH.verdict) L.groomLast.ok = false;
+    else L.groomLast = { rid: r.id, id: 'host' + Date.now(), ok: false };
+    saveLive();
+    showVerdict(false, text, last ? 'נגמרו הרמזים' : 'ממשיכים לרמז הבא');
+  } else if (['friends', 'countdown', 'reveal'].includes(SH.view)) {
+    const prev = L.results[r.id];
+    L.results[r.id] = { ok: false, guess: prev ? prev.guess : '' };
+    saveLive(); publishState(); updateStamp();
+  }
+}
+function updateStamp() {
+  const el = $('#stamp'); if (!el) return;
+  const res = L.results[curRound().id];
+  el.className = 'stamp' + (res && res.ok ? '' : ' bad');
+  el.textContent = resText(res);
+}
+
+/* countdown + reveal */
+function runCountdown() {
+  setView('countdown' + SH.ri, `<section class="cd"><div class="cd-face" id="cdFace"><div class="cd-num" id="cdNum">3</div></div></section>`, true);
+  const show = n => {
+    const face = $('#cdFace'); if (!face) return;
+    face.style.animation = 'none'; void face.offsetWidth; face.style.animation = '';
+    face.innerHTML = `<div class="cd-num">${n}</div>`;
+    sfx.beep();
+  };
+  show(3);
+  later(() => show(2), 1000);
+  later(() => show(1), 2000);
+  later(() => { SH.view = 'reveal'; commit(1); }, 3000);
+}
+function getVideo(ri) {
+  const r = SH.rounds[ri]; if (!r || !r.video) return null;
+  const m = M.get(r.video); if (!m) return null;
+  let v = SH.videos.get(ri); if (v) return v;
+  v = document.createElement('video');
+  v.preload = 'auto'; v.playsInline = true; v.src = m.url;
+  const isCur = () => SH.on && SH.view === 'reveal' && SH.ri === ri;
+  v.addEventListener('play', () => { if (isCur()) { setOSD('PLAY ' + TRI); showPlayBtn(false); } });
+  v.addEventListener('pause', () => { if (isCur() && !v.ended) { setOSD('PAUSE ❚❚'); showPlayBtn(true); } });
+  v.addEventListener('ended', () => { if (isCur()) { setOSD('STOP ■'); showPlayBtn(true, '↺'); $('#cue').textContent = SH.ri === SH.rounds.length - 1 ? '→ לסיכום' : '→ לקלטת הבאה'; } });
+  v.addEventListener('error', () => { if (!isCur()) return; const tv = $('#tv'); if (!tv) return; tv.innerHTML = staticHTML('הסרטון לא נטען'); startStatic(); });
+  SH.videos.set(ri, v);
+  return v;
+}
+function warmVideo(ri) {
+  getVideo(ri);
+  for (const [k, v] of SH.videos) if (k < ri - 1 || k > ri + 1) { v.pause(); SH.videos.delete(k); }
+}
+function showPlayBtn(on, label) { const b = $('#tvPlay'); if (!b) return; b.hidden = !on; b.textContent = label || TRI; }
+function playV(v) { const p = v.play(); if (p && p.then) p.then(() => showPlayBtn(false)).catch(() => showPlayBtn(true)); }
+function runReveal(dir) {
+  const v = getVideo(SH.ri), tv = $('#tv');
+  if (v) { tv.prepend(v); if (dir > 0) { try { v.currentTime = 0; } catch (e) {} playV(v); } else showPlayBtn(true, v.ended ? '↺' : TRI); }
+  else startStatic();
+}
+
+/* confetti */
+function confetti() {
+  if (reduced) return;
+  const cv = $('#confetti'); cv.hidden = false;
+  const W = cv.width = stage.clientWidth, H = cv.height = stage.clientHeight;
+  const x = cv.getContext('2d');
+  const cs = getComputedStyle(document.documentElement);
+  const cols = ['--label', '--hit', '--osd-cyan', '--rec', '--paper'].map(k => cs.getPropertyValue(k).trim());
+  const P = Array.from({ length: 170 }, () => ({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .55, vx: (Math.random() - .5) * W * .018, vy: -(Math.random() * H * .022 + H * .008), r: Math.random() * 6.3, vr: (Math.random() - .5) * .3, s: 6 + Math.random() * 9, c: cols[Math.random() * cols.length | 0] }));
+  const t0 = performance.now();
+  const step = t => {
+    const el = t - t0; x.clearRect(0, 0, W, H);
+    for (const p of P) { p.vy += H * .00055; p.x += p.vx; p.y += p.vy; p.r += p.vr; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); x.restore(); }
+    if (el < 3200) requestAnimationFrame(step); else { x.clearRect(0, 0, W, H); cv.hidden = true; }
+  };
+  requestAnimationFrame(step);
+}
+
+function setCue() {
+  let t = '';
+  const r = curRound();
+  if (SH.view === 'intro') t = '→ לקלטת הראשונה';
+  else if (SH.view === 'board') {
+    if (SH.verdict) t = '→ להמשיך';
+    else if (SH.stage < r.clues.length) t = `→ ${SH.stage === 0 ? 'הרמז הראשון' : 'הרמז הבא'}   ·   T ניחוש של החתן`;
+    else t = '→ לא ניחש, לסרטון   ·   T ניחוש של החתן';
+  }
+  else if (SH.view === 'friends') t = '→ לסרטון';
+  else if (SH.view === 'reveal') t = 'רווח עצירה והמשך   ·   ' + (SH.ri === SH.rounds.length - 1 ? '→ לסיכום' : '→ לקלטת הבאה');
+  $('#cue').textContent = t;
+}
+
+/* navigation */
+function next() {
+  if (SH.view === 'board' && SH.verdict) { afterVerdict(); return; }
+  const r = curRound();
+  if (SH.view === 'intro') { pushHist(); SH.view = 'board'; SH.stage = 0; commit(1); return; }
+  if (SH.view === 'board') {
+    if (L.results[r.id]) { pushHist(); finale(); return; }
+    if (SH.stage < r.clues.length) { pushHist(); SH.stage++; commit(1); return; }
+    pushHist();
+    const used = L.used[r.id] || (L.used[r.id] = {}); used[SH.stage] = true;
+    L.results[r.id] = { ok: false, guess: '' };
+    saveLive();
+    showVerdict(false, '', 'נגמרו הרמזים');
+    return;
+  }
+  if (SH.view === 'friends') { pushHist(); SH.view = 'countdown'; commit(1); return; }
+  if (SH.view === 'countdown') { SH.view = 'reveal'; commit(1); return; }
+  if (SH.view === 'reveal') {
+    pushHist();
+    if (SH.ri >= SH.rounds.length - 1) SH.view = 'end';
+    else { SH.ri++; SH.view = 'board'; SH.stage = 0; }
+    commit(1); return;
+  }
+}
+function prev() {
+  if (SH.verdict) { clearTimeout(SH.vTimer); SH.verdict = null; hideVerdictLayer(); }
+  const h = SH.hist.pop();
+  if (!h) return;
+  restore(h);
+  setOSD('◀︎◀︎ REW', 700);
+  closeZoom();
+  commit(-1);
+}
+function revealLetter() {
+  if (SH.view !== 'board' || SH.verdict) return;
+  const r = curRound(), chars = [...r.name];
+  const set = new Set(L.letters[r.id] || []);
+  const pool = chars.map((ch, i) => i).filter(i => K.isLetter(chars[i]) && !set.has(i));
+  if (pool.length <= 1) { setOSD('NO MORE', 900); return; }
+  const i = pool[Math.random() * pool.length | 0];
+  set.add(i); L.letters[r.id] = [...set]; SH.popLetter = i;
+  saveLive(); publishState();
+  updateBoard(0);
+}
+function toggleVideo() {
+  if (SH.view !== 'reveal') return false;
+  const v = SH.videos.get(SH.ri); if (!v) return false;
+  if (v.paused || v.ended) { if (v.ended) { try { v.currentTime = 0; } catch (e) {} } playV(v); } else v.pause();
+  return true;
+}
+function replay() { if (SH.view !== 'reveal') return; const v = SH.videos.get(SH.ri); if (!v) return; try { v.currentTime = 0; } catch (e) {} playV(v); }
+function zoomClue(j) {
+  if (SH.view !== 'board') return;
+  const r = curRound(), c = r.clues[j]; if (!c || j >= SH.stage) return;
+  const m = c.media && M.get(c.media);
+  const z = $('#zoom');
+  $$('video[data-cv]', scr).forEach(v => { v.muted = true; });
+  z.innerHTML = `<figure class="zpol">${m ? (m.kind === 'video' ? `<video src="${m.url}" playsinline autoplay></video>` : `<img src="${m.url}" alt="רמז ${j + 1}">`) : ''}${c.text ? `<figcaption class="${m ? '' : 'big'}">${esc(c.text)}</figcaption>` : ''}</figure>`;
+  z.hidden = false;
+  const zv = z.querySelector('video'); if (zv) zv.play().catch(() => { zv.muted = true; zv.play().catch(() => {}); });
+}
+function closeZoom() { const z = $('#zoom'); if (!z.hidden) { const zv = z.querySelector('video'); if (zv) zv.pause(); z.hidden = true; z.innerHTML = ''; } }
+function toggleQR() {
+  const q = $('#qrCorner');
+  if (!q.hidden) { q.hidden = true; return; }
+  q.innerHTML = `<div class="qr-box">${qrSVG(playURL(false))}</div><div>סרקו ונחשו</div>`;
+  q.hidden = false;
+}
+function openTyper() {
+  if (SH.view !== 'board' || SH.verdict) { setOSD('NOT NOW', 900); return; }
+  const r = curRound(), res = L.results[r.id], used = L.used[r.id] || {};
+  if ((res && res.ok) || used[SH.stage]) { setOSD('NOT NOW', 900); return; }
+  $('#typer').hidden = false;
+  const i = $('#typerIn'); i.value = ''; i.focus();
+}
+function closeTyper() { const t = $('#typer'); if (!t.hidden) { t.hidden = true; stage.focus({ preventScroll: true }); } }
+$('#typerForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = $('#typerIn').value.trim();
+  closeTyper();
+  if (v) groomGuess(v, 'host' + Date.now());
+});
+$('#typerIn').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeTyper(); } else e.stopPropagation(); });
+
+window.addEventListener('keydown', e => {
+  if (!SH.on || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!$('#typer').hidden) return;
+  const k = e.key, c = e.code;
+  const nav = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageDown', 'PageUp', 'Enter', 'Backspace', ' ', 'Escape'];
+  if (!$('#zoom').hidden) { if (nav.includes(k) || /^Digit/.test(c)) { e.preventDefault(); closeZoom(); } return; }
+  let handled = true;
+  if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || k === 'Enter') next();
+  else if (k === ' ' || c === 'Space') { if (!toggleVideo()) next(); }
+  else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace') prev();
+  else if (c === 'KeyT') openTyper();
+  else if (c === 'KeyG') markRight();
+  else if (c === 'KeyD') markWrong();
+  else if (c === 'KeyL') revealLetter();
+  else if (c === 'KeyQ') toggleQR();
+  else if (c === 'KeyF') toggleFs();
+  else if (c === 'KeyR') replay();
+  else if (c === 'KeyM') { SH.sound = !SH.sound; setOSD(SH.sound ? 'SOUND ON' : 'MUTE', 1000); }
+  else if (/^Digit[1-3]$/.test(c)) zoomClue(+c.slice(5) - 1);
+  else handled = false;
+  if (handled) e.preventDefault();
+});
+stage.addEventListener('click', e => {
+  if (e.target.closest('.hostbar') || e.target.closest('.typer')) return;
+  if (!$('#zoom').hidden) { closeZoom(); return; }
+  if (e.target.closest('.qr-corner')) { $('#qrCorner').hidden = true; return; }
+  const pol = e.target.closest('.pol.up'); if (pol && !SH.verdict) { zoomClue(+pol.dataset.j); return; }
+  if (e.target.closest('.tv')) { toggleVideo(); return; }
+  next();
+});
+$('#hostbar').addEventListener('click', e => {
+  const b = e.target.closest('[data-h]'); if (!b) return;
+  b.blur();
+  ({ exit: exitShow, prev, next, type: openTyper, right: markRight, wrong: markWrong, qr: toggleQR, fs: toggleFs })[b.dataset.h]();
+});
+let idleT = 0;
+function wakeBar() {
+  stage.classList.add('awake'); stage.classList.remove('idle');
+  clearTimeout(idleT);
+  idleT = setTimeout(function hide() {
+    if ($('#hostbar').matches(':hover')) { idleT = setTimeout(hide, 1500); return; }
+    stage.classList.remove('awake'); stage.classList.add('idle');
+  }, 2600);
+}
+stage.addEventListener('mousemove', wakeBar);
+
+/* ---------- boot ---------- */
+async function boot() {
+  try {
+    await loadMedia();
+    G = normGame(await IDB.get('kv', 'game'));
+    L = normLive(await IDB.get('kv', 'live'));
+    await IDB.put('kv', 'game', G);
+  } catch (e) {
+    G = normGame(null); L = newLive();
+    showNotice('הדפדפן לא מאפשר לשמור נתונים בדף הזה (אולי חלון גלישה בסתר). פתחו את הדף בחלון רגיל של Chrome.');
+  }
+  bindEditor();
+  renderSettings();
+  syncList();
+  renderLinks();
+  saveState();
+  updateUsage();
+  syncSH();
+  updateStartBtn();
+  renderPlayers();
+  startRelay();
+}
+boot();
+})();
+</script>
+</body>
+</html>

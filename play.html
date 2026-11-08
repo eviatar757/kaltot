@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0d29">
+<title>קלטות מהעבר · ניחוש</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Karantina:wght@400;700&family=VT323&display=swap">
+<style>
+/* Layout: one narrow column on the dark VHS screen; a status strip on top, one card per game moment below */
+:root{
+  color-scheme:dark;
+  --tape:#0a0d29; --tape-2:#151b49; --tape-3:#252c6a; --phosphor:#f4f1e8; --dim:#b9bbd6; --osd:#eaf3ff; --osd-cyan:#4fd8ff;
+  --label:#ffc93c; --label-ink:#17182c; --paper:#f3eee2; --paper-ink:#25222c; --rec:#ff4b3a; --hit:#46db8f; --fish:#ff9d2e;
+  --f-display:"Karantina","Secular One","Arial Narrow",sans-serif;
+  --f-body:"IBM Plex Sans Hebrew",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --f-hand:"Amatic SC","Karantina","Arial Narrow",cursive;
+  --f-osd:"VT323",ui-monospace,"Courier New",monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(130% 80% at 50% 0%,var(--tape-2) 0%,var(--tape) 70%) fixed,var(--tape);color:var(--phosphor);font-family:var(--f-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--label);outline-offset:3px}
+.wrap{max-width:480px;margin:0 auto;min-height:100%;display:grid;grid-template-rows:auto 1fr;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;align-items:center;gap:10px;padding-block:14px 10px;border-bottom:1px solid var(--tape-3)}
+.mini-cas{width:40px;height:25px;border-radius:4px;background:#1c1c24;position:relative;flex:none;box-shadow:inset 0 0 0 2px #30303c}
+.mini-cas::before{content:"";position:absolute;inset:3px 4px 12px;background:var(--label);border-radius:2px}
+.mini-cas i{position:absolute;bottom:3px;width:8px;height:8px;border-radius:50%;border:2px solid var(--paper)}
+.mini-cas i:first-child{left:9px}.mini-cas i:last-child{right:9px}
+.top h1{margin:0;font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.net{font-family:var(--f-osd);font-size:18px;line-height:1;color:var(--osd);direction:ltr;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.net::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--hit)}
+.net.off::before{background:var(--rec)}
+.badge{font-size:13px;font-weight:600;background:var(--label);color:var(--label-ink);border-radius:999px;padding:2px 10px}
+
+main{display:grid;align-content:start;gap:18px;padding-block:22px}
+.card{background:var(--tape-2);border:1px solid var(--tape-3);border-radius:18px;padding:20px;display:grid;gap:14px}
+.k{font-family:var(--f-osd);font-size:20px;line-height:1;color:var(--osd);direction:ltr;text-align:right;letter-spacing:.04em}
+.h{margin:0;font-family:var(--f-display);font-weight:700;font-size:44px;line-height:.95;text-wrap:balance}
+.h.big{font-size:64px}
+.h.hit{color:var(--hit)}
+.h.fish{color:var(--fish)}
+.h.gold{color:var(--label)}
+.p{margin:0;color:var(--dim);max-width:46ch}
+.p b{color:var(--phosphor);font-weight:600}
+.stage-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dots{display:flex;gap:6px}
+.dots i{width:30px;height:22px;border-radius:4px;background:var(--tape-3);display:grid;place-items:center;font-style:normal;font-family:var(--f-display);font-weight:700;font-size:18px;color:var(--label)}
+.dots i.on{background:var(--paper);color:var(--paper-ink)}
+.pb{display:flex;flex-wrap:wrap;justify-content:center;gap:10px calc(var(--c)*.7);padding:6px 0 2px}
+.pb .w{display:flex;gap:calc(var(--c)*.2)}
+.pb span{width:var(--c);height:calc(var(--c)*1.3);border-bottom:3px solid var(--label);display:grid;place-items:end center;font-family:var(--f-display);font-weight:700;font-size:calc(var(--c)*1.1);line-height:1;color:var(--label)}
+.pb span.pu{border-color:transparent;width:auto;color:var(--phosphor)}
+form{display:grid;gap:12px;margin:0}
+label.lbl{font-weight:500}
+input[type=text]{width:100%;font-family:var(--f-hand);font-weight:700;font-size:34px;line-height:1.1;text-align:center;background:var(--paper);color:var(--paper-ink);border:0;border-radius:12px;padding:10px 14px;min-height:60px}
+input[type=text]::placeholder{color:color-mix(in srgb,var(--paper-ink) 45%,transparent)}
+.btn{min-height:54px;border:0;border-radius:14px;background:var(--label);color:var(--label-ink);font-weight:600;font-size:18px;cursor:pointer;padding:10px 18px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--phosphor);border:1px solid var(--tape-3)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mine{font-family:var(--f-hand);font-weight:700;font-size:40px;line-height:1;background:var(--paper);color:var(--paper-ink);border-radius:12px;padding:12px 14px;text-align:center;transform:rotate(-1.5deg);overflow-wrap:anywhere}
+.mine.bad{text-decoration:line-through;text-decoration-color:var(--rec)}
+.ok-line{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--dim)}
+.ok-line.good{color:var(--hit)}
+.ok-line.bad{color:var(--rec)}
+.spin{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--tape-3);border-top-color:var(--label);animation:spin .8s linear infinite;flex:none}
+.center{display:grid;justify-items:center;text-align:center;gap:14px}
+.link{background:none;border:0;color:var(--dim);text-decoration:underline;cursor:pointer;padding:6px;font-size:14px;justify-self:center}
+.answer{font-family:var(--f-display);font-weight:700;font-size:56px;line-height:1;color:var(--label);text-align:center;text-wrap:balance}
+.fishy{width:120px;animation:bob .6s ease-in-out infinite alternate}
+.fishy svg{width:100%;height:auto;display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bob{from{transform:translateY(-4px) rotate(-5deg)}to{transform:translateY(4px) rotate(5deg)}}
+@keyframes popIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+.pop{animation:popIn .35s cubic-bezier(.2,1.4,.4,1) both}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="mini-cas" aria-hidden="true"><i></i><i></i></span>
+    <h1 id="title">קלטות מהעבר</h1>
+    <span class="badge" id="groomBadge" hidden>החתן</span>
+    <span class="net off" id="net" aria-live="polite">...</span>
+  </header>
+  <main id="view" aria-live="polite"></main>
+</div>
+<script src="lib/mqtt.min.js"></script>
+<script src="lib/relay.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const K = window.Kaltot;
+const qs = new URLSearchParams(location.search);
+const CODE = (qs.get('g') || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16);
+const GKEY = (qs.get('k') || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24);
+const GROOM = !!GKEY;
+const BASE = `kaltot/v1/${CODE}`;
+const view = $('#view');
+
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem('kt.' + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem('kt.' + k, JSON.stringify(v)); } catch (e) {} }
+};
+let pid = store.get('pid');
+if (!pid) { pid = K.rid(10); store.set('pid', pid); }
+let name = store.get('name') || '';
+let editingName = false;
+let st = null, lastRev = 0, relay = null, netN = 0;
+let draft = '', confirmText = '';
+let pending = null; // groom: {rid, stage, id, guess, at}
+let lastVerdictShown = '';
+
+const FISH = `<svg viewBox="0 0 120 70" aria-hidden="true"><path d="M98 35 L119 14 L114 35 L119 56 Z" fill="var(--fish)"/><ellipse cx="56" cy="35" rx="46" ry="27" fill="var(--fish)"/><path d="M50 9 Q62 0 74 10" fill="var(--fish)"/><circle cx="26" cy="29" r="7.5" fill="var(--paper)"/><circle cx="24.5" cy="29" r="3.6" fill="var(--tape)"/><path d="M12 42 Q16 46 21 43" fill="none" stroke="var(--tape)" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+
+function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+const gKey = rid => `g.${CODE}.${st.session}.${rid}`;
+
+/* ---------- connection ---------- */
+function connect() {
+  if (!window.mqtt) { $('#net').textContent = 'OFFLINE'; return; }
+  const subs = [`${BASE}/state`];
+  relay = new K.Relay({
+    subs,
+    onMessage: (topic, d) => { if (topic === `${BASE}/state`) onState(d); },
+    onStatus: n => {
+      netN = n;
+      const el = $('#net'); el.className = 'net' + (n ? '' : ' off'); el.textContent = n ? 'LIVE' : 'OFFLINE';
+      if (n && !GROOM && name) announce();
+    }
+  });
+}
+function announce() { if (relay && name) relay.publish(`${BASE}/p/${pid}`, { name, ts: Date.now() }, true).catch(() => {}); }
+function onState(d) {
+  if (!d || typeof d.rev !== 'number' || d.rev < lastRev) return;
+  const prevRid = st && st.round ? st.round.id + ':' + st.view : '';
+  lastRev = d.rev; st = d;
+  if ((d.round ? d.round.id + ':' + d.view : '') !== prevRid && d.view !== 'round') { confirmText = ''; }
+  if (d.round && prevRid && !prevRid.startsWith(d.round.id + ':')) { confirmText = ''; draft = ''; }
+  if (d.title) { $('#title').textContent = d.title; document.title = d.title + ' · ניחוש'; }
+  housekeeping();
+  render();
+}
+/* resend anything the projector has not confirmed yet */
+function housekeeping() {
+  if (!st) return;
+  const r = st.round;
+  if (GROOM && pending) {
+    if (!r || st.view !== 'round' || r.id !== pending.rid || r.stage !== pending.stage) { pending = null; }
+    else if (st.groomLast && st.groomLast.id === pending.id) { pending = null; }
+    else if (st.groomOpen && Date.now() - pending.at > 4000) sendGroom(pending.guess, pending);
+  }
+  if (!GROOM && r && st.view === 'round' && st.open) {
+    const mine = store.get(gKey(r.id));
+    const got = (st.got || []).includes(pid);
+    if (mine && !got && Date.now() - (mine.at || 0) > 5000) sendFriend(mine.guess, r.id);
+  }
+}
+setInterval(() => { housekeeping(); }, 3000);
+
+/* ---------- sending ---------- */
+async function sendFriend(guess, rid) {
+  const rec = { guess, at: Date.now(), sent: false };
+  store.set(gKey(rid), rec);
+  render();
+  try {
+    await relay.publish(`${BASE}/g/${st.session}/${rid}/${pid}`, { name, guess, ts: Date.now() }, true);
+    rec.sent = true; store.set(gKey(rid), rec);
+  } catch (e) { rec.failed = true; store.set(gKey(rid), rec); }
+  render();
+}
+async function sendGroom(guess, again) {
+  const r = st.round;
+  const p = again || { rid: r.id, stage: r.stage, id: 'g' + K.rid(10), guess };
+  p.at = Date.now(); pending = p;
+  render();
+  try { await relay.publish(`${BASE}/x/${GKEY}/${st.session}/${p.rid}/${p.stage}`, { guess: p.guess, id: p.id, ts: p.at }, true); }
+  catch (e) {}
+}
+
+/* ---------- drawing ---------- */
+function patternHTML(pat) {
+  const chars = [...String(pat || '')];
+  const W = Math.min(window.innerWidth, 480) - 72;
+  const c = Math.max(14, Math.min(34, Math.floor(W / Math.max(1, chars.length * 1.15))));
+  const words = String(pat || '').split(' ').filter(Boolean);
+  return `<div class="pb" style="--c:${c}px" aria-label="${chars.filter(ch => ch === '_').length} אותיות">${words.map(w => `<div class="w">${[...w].map(ch => ch === '_' ? '<span></span>' : /[\p{L}\p{N}]/u.test(ch) ? `<span>${esc(ch)}</span>` : `<span class="pu">${esc(ch)}</span>`).join('')}</div>`).join('')}</div>`;
+}
+function stageHTML(r) {
+  if (!r.nClues) return '<p class="p">על המסך מופיעות רק האותיות של השם.</p>';
+  return `<div class="stage-line"><div class="dots">${Array.from({ length: r.nClues }, (_, i) => `<i class="${i < r.stage ? 'on' : ''}">${i < r.stage ? '' : '?'}</i>`).join('')}</div><span class="p">${r.stage === 0 ? 'עוד לא נחשף רמז' : `נחשפו ${r.stage} מתוך ${r.nClues} רמזים`}</span></div>`;
+}
+function roundHead(r) { return `<div class="k">TAPE ${String(r.n).padStart(2, '0')}/${String(st.total || r.n).padStart(2, '0')}</div>`; }
+
+function render() {
+  const ae = document.activeElement;
+  const hadFocus = ae && ae.id === 'guessIn';
+  if (hadFocus) draft = ae.value;
+  view.innerHTML = screen();
+  bind();
+  const gi = $('#guessIn');
+  if (gi) { gi.value = draft; if (hadFocus) { gi.focus(); try { gi.setSelectionRange(draft.length, draft.length); } catch (e) {} } }
+}
+function screen() {
+  if (!CODE) return `<section class="card"><h2 class="h">הקישור לא שלם</h2><p class="p">סרקו שוב את ה-QR שעל המסך.</p></section>`;
+  if (!GROOM && (!name || editingName)) return nameScreen();
+  if (!st) return `<section class="card center"><span class="spin"></span><p class="p">מתחבר למשחק…</p>${netN ? '' : '<p class="p" id="slow" hidden>לוקח יותר מהרגיל. בדקו שיש אינטרנט בטלפון.</p>'}</section>`;
+  const r = st.round;
+  if (st.view === 'lobby' || !r && st.view !== 'end') return lobbyScreen();
+  if (st.view === 'end') return endScreen();
+  if (GROOM) return groomScreen(r);
+  return friendScreen(r);
+}
+function nameScreen() {
+  return `<section class="card"><h2 class="h gold">איך קוראים לך?</h2>
+    <p class="p">השם יופיע על המסך ליד הניחושים שלך.</p>
+    <form id="nameForm" autocomplete="off"><input type="text" id="nameIn" maxlength="20" placeholder="השם שלך" value="${esc(name)}" autocomplete="off" enterkeyhint="go">
+    <button class="btn" type="submit">כניסה למשחק</button></form></section>`;
+}
+function lobbyScreen() {
+  return `<section class="card center">
+    <h2 class="h gold">${GROOM ? 'היי חתן!' : `היי ${esc(name)}!`}</h2>
+    <p class="p">${GROOM
+      ? 'כשיופיעו רמזים על המסך, תכתוב כאן מי זה לדעתך. מותר לנחש פעם אחת אחרי כל רמז.'
+      : 'כשהקלטת הבאה תתחיל, תוכלו לכתוב כאן מי זה לדעתכם. יש ניסיון אחד לכל קלטת.'}</p>
+    <span class="spin" aria-hidden="true"></span><p class="p">מחכים לקלטת${st && st.total ? ` · ${st.total} קלטות במשחק` : ''}</p>
+    ${GROOM ? '' : '<button class="link" type="button" data-a="rename">לשנות את השם</button>'}
+  </section>`;
+}
+function guessForm(btn, placeholder) {
+  return `<form id="guessForm" autocomplete="off"><input type="text" id="guessIn" maxlength="40" placeholder="${esc(placeholder)}" autocomplete="off" autocapitalize="words" enterkeyhint="send">
+    <button class="btn" type="submit" id="guessBtn">${btn}</button></form>`;
+}
+function friendScreen(r) {
+  const mine = store.get(gKey(r.id));
+  const got = (st.got || []).includes(pid);
+  let body;
+  if (st.view === 'reveal') {
+    const right = (st.right || []).includes(pid);
+    body = `<div class="k">ANSWER</div><div class="answer pop">${esc(st.answer || '')}</div>` +
+      (mine ? (right ? `<h2 class="h hit pop">צדקת!</h2><div class="mine">${esc(mine.guess)}</div>` : `<h2 class="h fish pop">איזה דג!</h2><div class="mine bad">${esc(mine.guess)}</div>`)
+        : `<p class="p">לא ניחשת בקלטת הזאת.</p>`);
+    vibeOnce('r' + r.id, mine ? (right ? [60, 40, 60] : [260]) : null);
+    return `<section class="card center">${body}<p class="p">הקלטת הבאה תופיע כאן.</p></section>`;
+  }
+  if (mine) {
+    const state = got ? '<div class="ok-line good">&#x2713; המסך קיבל את הניחוש</div>'
+      : mine.failed ? '<div class="ok-line bad">לא הצלחתי לשלוח. בודק שוב…</div>'
+      : '<div class="ok-line"><span class="spin"></span>שולח…</div>';
+    return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}
+      <p class="p">הניחוש שלך:</p><div class="mine">${esc(mine.guess)}</div>${state}
+      <p class="p">${st.view === 'locked' ? 'הניחושים נסגרו. תסתכלו על המסך.' : 'נגלה בסוף הקלטת אם צדקת.'}</p></section>`;
+  }
+  if (st.view === 'locked' || !st.open) {
+    return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}<h2 class="h">הניחושים נסגרו</h2><p class="p">הפעם לא הספקת. תסתכלו על המסך, הקלטת מתחילה.</p></section>`;
+  }
+  if (confirmText) {
+    return `<section class="card">${roundHead(r)}<h2 class="h gold">לשלוח את זה?</h2><div class="mine">${esc(confirmText)}</div>
+      <p class="p">יש רק ניסיון אחד בקלטת הזאת.</p>
+      <div class="row"><button class="btn ghost" type="button" data-a="cancel">רגע, לתקן</button><button class="btn" type="button" data-a="confirm">כן, לשלוח</button></div></section>`;
+  }
+  return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}${stageHTML(r)}
+    <h2 class="h">מי זה?</h2>${guessForm('שליחה', 'השם שלו')}
+    <p class="p">יש לך ניסיון אחד בקלטת הזאת. אפשר לנחש עכשיו או לחכות לעוד רמזים.</p></section>`;
+}
+let vibed = new Set();
+function vibeOnce(key, pat) { if (!pat || vibed.has(key)) return; vibed.add(key); vibrate(pat); }
+function groomScreen(r) {
+  if (st.view === 'reveal') {
+    vibeOnce('r' + r.id, st.groomOk ? [60, 40, 60] : [260]);
+    return `<section class="card center"><div class="k">ANSWER</div><div class="answer pop">${esc(st.answer || '')}</div>
+      ${st.groomOk ? '<h2 class="h hit">זיהית!</h2>' : '<h2 class="h fish">לא זיהית</h2>'}<p class="p">תסתכל על המסך. הקלטת הבאה תופיע כאן.</p></section>`;
+  }
+  if (st.view === 'locked') {
+    return `<section class="card center">${roundHead(r)}<h2 class="h gold">תסתכל על המסך</h2><p class="p">עוד שנייה מתחיל הסרטון.</p></section>`;
+  }
+  const last = st.groomLast;
+  if (pending) {
+    return `<section class="card center">${roundHead(r)}<p class="p">שלחת:</p><div class="mine">${esc(pending.guess)}</div>
+      <div class="ok-line"><span class="spin"></span>תסתכל על המסך…</div></section>`;
+  }
+  if (!st.groomOpen && last) {
+    const key = r.id + ':' + last.id;
+    if (lastVerdictShown !== key) { lastVerdictShown = key; vibrate(last.ok ? [60, 40, 60] : [260]); }
+    return last.ok
+      ? `<section class="card center">${roundHead(r)}<h2 class="h big hit pop">כל הכבוד!</h2><p class="p">תסתכל על המסך.</p></section>`
+      : `<section class="card center">${roundHead(r)}<div class="fishy">${FISH}</div><h2 class="h big fish pop">איזה דג!</h2><p class="p">${r.stage >= r.nClues ? 'נגמרו הרמזים. תסתכל על המסך.' : 'עוד רגע נחשף הרמז הבא, ואז תוכל לנחש שוב.'}</p></section>`;
+  }
+  if (!st.groomOpen) {
+    return `<section class="card center">${roundHead(r)}${patternHTML(r.pattern)}<p class="p">רגע… תסתכל על המסך.</p></section>`;
+  }
+  const missed = last && !last.ok ? '<p class="p">הניחוש הקודם היה דג. נסה שוב.</p>' : '';
+  return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}${stageHTML(r)}${missed}
+    <h2 class="h gold">מי זה?</h2>${guessForm('שליחה למסך', 'השם שלו')}
+    <p class="p">מותר לנחש פעם אחת אחרי כל רמז. ניחוש לא נכון חושף את הרמז הבא.</p></section>`;
+}
+function endScreen() {
+  const total = st.score ? st.score.total : st.total;
+  if (GROOM) {
+    return `<section class="card center"><div class="k">THE END</div><h2 class="h big gold">זיהית ${st.score ? st.score.groom : 0} מתוך ${total}</h2><p class="p">מזל טוב!</p></section>`;
+  }
+  const me = st.scores && st.scores[pid];
+  const n = me ? me.n : 0;
+  const all = Object.values(st.scores || {}).map(x => x.n);
+  const best = all.length && n > 0 && n === Math.max(...all);
+  return `<section class="card center"><div class="k">THE END</div><h2 class="h big gold">צדקת ב-${n} מתוך ${total}</h2>
+    <p class="p">${best ? 'אתה בין מי שצדקו הכי הרבה הערב.' : 'תודה שהשתתפת!'}</p></section>`;
+}
+
+function bind() {
+  const nf = $('#nameForm');
+  if (nf) {
+    const ni = $('#nameIn');
+    if (!name) setTimeout(() => ni.focus(), 50);
+    nf.addEventListener('submit', e => {
+      e.preventDefault();
+      const v = K.norm(ni.value) ? ni.value.trim().slice(0, 20) : '';
+      if (!v) { ni.focus(); return; }
+      name = v; store.set('name', name); editingName = false;
+      announce(); render();
+    });
+  }
+  const gf = $('#guessForm');
+  if (gf) {
+    const gi = $('#guessIn');
+    gi.addEventListener('input', () => { draft = gi.value; });
+    gf.addEventListener('submit', e => {
+      e.preventDefault();
+      const v = gi.value.trim().slice(0, 40);
+      if (!K.norm(v)) { gi.focus(); return; }
+      if (!st || !st.round) return;
+      if (GROOM) { if (!st.groomOpen) return; draft = ''; gi.blur(); sendGroom(v); }
+      else { confirmText = v; gi.blur(); render(); }
+    });
+  }
+  view.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
+    const a = b.dataset.a;
+    if (a === 'rename') { editingName = true; render(); }
+    else if (a === 'cancel') { draft = confirmText; confirmText = ''; render(); }
+    else if (a === 'confirm') {
+      const v = confirmText; confirmText = ''; draft = '';
+      if (st && st.round && st.view === 'round' && st.open) sendFriend(v, st.round.id); else render();
+    }
+  }));
+  const slow = $('#slow'); if (slow) setTimeout(() => { if (slow.isConnected) slow.hidden = false; }, 9000);
+}
+
+if (GROOM) $('#groomBadge').hidden = false;
+render();
+if (CODE) connect();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { housekeeping(); render(); } });
+})();
+</script>
+</body>
+</html>
