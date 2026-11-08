@@ -46,6 +46,7 @@ main{display:grid;align-content:start;gap:18px;padding-block:22px}
 .h.hit{color:var(--hit)}
 .h.fish{color:var(--fish)}
 .h.gold{color:var(--label)}
+.h.no{color:var(--rec)}
 .p{margin:0;color:var(--dim);max-width:46ch}
 .p b{color:var(--phosphor);font-weight:600}
 .stage-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -119,6 +120,7 @@ let st = null, lastRev = 0, relay = null, netN = 0;
 let draft = '', confirmText = '';
 let pending = null; // groom: {rid, stage, id, guess, at}
 let lastVerdictShown = '';
+let gKind = 'q'; // 21 questions: is the groom asking or guessing
 
 const FISH = `<svg viewBox="0 0 120 70" aria-hidden="true"><path d="M98 35 L119 14 L114 35 L119 56 Z" fill="var(--fish)"/><ellipse cx="56" cy="35" rx="46" ry="27" fill="var(--fish)"/><path d="M50 9 Q62 0 74 10" fill="var(--fish)"/><circle cx="26" cy="29" r="7.5" fill="var(--paper)"/><circle cx="24.5" cy="29" r="3.6" fill="var(--tape)"/><path d="M12 42 Q16 46 21 43" fill="none" stroke="var(--tape)" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 
@@ -155,9 +157,12 @@ function housekeeping() {
   if (!st) return;
   const r = st.round;
   if (GROOM && pending) {
-    if (!r || st.view !== 'round' || r.id !== pending.rid || r.stage !== pending.stage) { pending = null; }
-    else if (st.groomLast && st.groomLast.id === pending.id) { pending = null; }
-    else if (st.groomOpen && Date.now() - pending.at > 4000) sendGroom(pending.guess, pending);
+    const step = r ? (r.step != null ? r.step : r.stage) : -1;
+    const got = !!(r && r.pending && r.pending.id === pending.id);
+    const done = !!((r && r.last && r.last.id === pending.id) || (st.groomLast && st.groomLast.id === pending.id));
+    if (done) pending = null;
+    else if (!r || st.view !== 'round' || r.id !== pending.rid || (!got && step !== pending.stage)) pending = null;
+    else if (!got && st.groomOpen && Date.now() - pending.at > 4000) sendGroom(pending.guess, pending);
   }
   if (!GROOM && r && st.view === 'round' && st.open) {
     const mine = store.get(gKey(r.id));
@@ -178,12 +183,12 @@ async function sendFriend(guess, rid) {
   } catch (e) { rec.failed = true; store.set(gKey(rid), rec); }
   render();
 }
-async function sendGroom(guess, again) {
+async function sendGroom(guess, again, kind) {
   const r = st.round;
-  const p = again || { rid: r.id, stage: r.stage, id: 'g' + K.rid(10), guess };
+  const p = again || { rid: r.id, stage: r.step != null ? r.step : r.stage, id: 'g' + K.rid(10), guess, kind: kind || 'g' };
   p.at = Date.now(); pending = p;
   render();
-  try { await relay.publish(`${BASE}/x/${GKEY}/${st.session}/${p.rid}/${p.stage}`, { guess: p.guess, id: p.id, ts: p.at }, true); }
+  try { await relay.publish(`${BASE}/x/${GKEY}/${st.session}/${p.rid}/${p.stage}`, { guess: p.guess, kind: p.kind, id: p.id, ts: p.at }, true); }
   catch (e) {}
 }
 
@@ -196,6 +201,7 @@ function patternHTML(pat) {
   return `<div class="pb" style="--c:${c}px" aria-label="${chars.filter(ch => ch === '_').length} אותיות">${words.map(w => `<div class="w">${[...w].map(ch => ch === '_' ? '<span></span>' : /[\p{L}\p{N}]/u.test(ch) ? `<span>${esc(ch)}</span>` : `<span class="pu">${esc(ch)}</span>`).join('')}</div>`).join('')}</div>`;
 }
 function stageHTML(r) {
+  if (r.mode === 'q21') return `<p class="p">21 שאלות · נוצלו ${r.used || 0} מתוך ${r.max || 21}</p>`;
   if (!r.nClues) return '<p class="p">על המסך מופיעות רק האותיות של השם.</p>';
   return `<div class="stage-line"><div class="dots">${Array.from({ length: r.nClues }, (_, i) => `<i class="${i < r.stage ? 'on' : ''}">${i < r.stage ? '' : '?'}</i>`).join('')}</div><span class="p">${r.stage === 0 ? 'עוד לא נחשף רמז' : `נחשפו ${r.stage} מתוך ${r.nClues} רמזים`}</span></div>`;
 }
@@ -236,8 +242,8 @@ function lobbyScreen() {
     ${GROOM ? '' : '<button class="link" type="button" data-a="rename">לשנות את השם</button>'}
   </section>`;
 }
-function guessForm(btn, placeholder) {
-  return `<form id="guessForm" autocomplete="off"><input type="text" id="guessIn" maxlength="40" placeholder="${esc(placeholder)}" autocomplete="off" autocapitalize="words" enterkeyhint="send">
+function guessForm(btn, placeholder, max) {
+  return `<form id="guessForm" autocomplete="off"><input type="text" id="guessIn" maxlength="${max || 40}" placeholder="${esc(placeholder)}" autocomplete="off" autocapitalize="sentences" enterkeyhint="send">
     <button class="btn" type="submit" id="guessBtn">${btn}</button></form>`;
 }
 function friendScreen(r) {
@@ -256,19 +262,19 @@ function friendScreen(r) {
     const state = got ? '<div class="ok-line good">&#x2713; המסך קיבל את הניחוש</div>'
       : mine.failed ? '<div class="ok-line bad">לא הצלחתי לשלוח. בודק שוב…</div>'
       : '<div class="ok-line"><span class="spin"></span>שולח…</div>';
-    return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}
+    return `<section class="card">${roundHead(r)}${r.pattern ? patternHTML(r.pattern) : ''}
       <p class="p">הניחוש שלך:</p><div class="mine">${esc(mine.guess)}</div>${state}
       <p class="p">${st.view === 'locked' ? 'הניחושים נסגרו. תסתכלו על המסך.' : 'נגלה בסוף הקלטת אם צדקת.'}</p></section>`;
   }
   if (st.view === 'locked' || !st.open) {
-    return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}<h2 class="h">הניחושים נסגרו</h2><p class="p">הפעם לא הספקת. תסתכלו על המסך, הקלטת מתחילה.</p></section>`;
+    return `<section class="card">${roundHead(r)}${r.pattern ? patternHTML(r.pattern) : ''}<h2 class="h">הניחושים נסגרו</h2><p class="p">הפעם לא הספקת. תסתכלו על המסך, הקלטת מתחילה.</p></section>`;
   }
   if (confirmText) {
     return `<section class="card">${roundHead(r)}<h2 class="h gold">לשלוח את זה?</h2><div class="mine">${esc(confirmText)}</div>
       <p class="p">יש רק ניסיון אחד בקלטת הזאת.</p>
       <div class="row"><button class="btn ghost" type="button" data-a="cancel">רגע, לתקן</button><button class="btn" type="button" data-a="confirm">כן, לשלוח</button></div></section>`;
   }
-  return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}${stageHTML(r)}
+  return `<section class="card">${roundHead(r)}${r.pattern ? patternHTML(r.pattern) : ''}${stageHTML(r)}
     <h2 class="h">מי זה?</h2>${guessForm('שליחה', 'השם שלו')}
     <p class="p">יש לך ניסיון אחד בקלטת הזאת. אפשר לנחש עכשיו או לחכות לעוד רמזים.</p></section>`;
 }
@@ -283,6 +289,7 @@ function groomScreen(r) {
   if (st.view === 'locked') {
     return `<section class="card center">${roundHead(r)}<h2 class="h gold">תסתכל על המסך</h2><p class="p">עוד שנייה מתחיל הסרטון.</p></section>`;
   }
+  if (r.mode === 'q21') return groomQ21(r);
   const last = st.groomLast;
   if (pending) {
     return `<section class="card center">${roundHead(r)}<p class="p">שלחת:</p><div class="mine">${esc(pending.guess)}</div>
@@ -296,12 +303,39 @@ function groomScreen(r) {
       : `<section class="card center">${roundHead(r)}<div class="fishy">${FISH}</div><h2 class="h big fish pop">איזה דג!</h2><p class="p">${r.stage >= r.nClues ? 'נגמרו הרמזים. תסתכל על המסך.' : 'עוד רגע נחשף הרמז הבא, ואז תוכל לנחש שוב.'}</p></section>`;
   }
   if (!st.groomOpen) {
-    return `<section class="card center">${roundHead(r)}${patternHTML(r.pattern)}<p class="p">רגע… תסתכל על המסך.</p></section>`;
+    return `<section class="card center">${roundHead(r)}${r.pattern ? patternHTML(r.pattern) : ''}<p class="p">רגע… תסתכל על המסך.</p></section>`;
   }
   const missed = last && !last.ok ? '<p class="p">הניחוש הקודם היה דג. נסה שוב.</p>' : '';
-  return `<section class="card">${roundHead(r)}${patternHTML(r.pattern)}${stageHTML(r)}${missed}
+  return `<section class="card">${roundHead(r)}${r.pattern ? patternHTML(r.pattern) : ''}${stageHTML(r)}${missed}
     <h2 class="h gold">מי זה?</h2>${guessForm('שליחה למסך', 'השם שלו')}
     <p class="p">מותר לנחש פעם אחת אחרי כל רמז. ניחוש לא נכון חושף את הרמז הבא.</p></section>`;
+}
+function groomQ21(r) {
+  const used = r.used || 0, max = r.max || 21;
+  const head = `${roundHead(r)}`;
+  const mine = pending && pending.rid === r.id ? pending : null;
+  if (mine || r.pending) {
+    const kind = mine ? mine.kind : r.pending.kind, text = mine ? mine.guess : r.pending.text;
+    return `<section class="card center">${head}<p class="p">${kind === 'g' ? 'הניחוש שלך:' : `שאלה ${used + 1}:`}</p><div class="mine">${esc(text)}</div>
+      <div class="ok-line"><span class="spin"></span>${kind === 'g' ? 'תסתכל על המסך…' : 'מחכה לתשובה…'}</div></section>`;
+  }
+  const gl = st.groomLast, last = r.last;
+  if (!st.groomOpen && gl && last && last.kind === 'g' && last.id === gl.id) {
+    const key = r.id + ':' + gl.id;
+    if (lastVerdictShown !== key) { lastVerdictShown = key; vibrate(gl.ok ? [60, 40, 60] : [260]); }
+    return gl.ok
+      ? `<section class="card center">${head}<h2 class="h big hit pop">כל הכבוד!</h2><p class="p">תסתכל על המסך.</p></section>`
+      : `<section class="card center">${head}<div class="fishy">${FISH}</div><h2 class="h big fish pop">איזה דג!</h2><p class="p">הניחוש נספר כאחת מ-21 ההזדמנויות. עוד רגע אפשר להמשיך.</p></section>`;
+  }
+  if (!st.groomOpen) return `<section class="card center">${head}<p class="p">רגע… תסתכל על המסך.</p></section>`;
+  const ans = last && last.kind === 'q'
+    ? `<div class="center"><p class="p">«${esc(last.text)}»</p><h2 class="h big ${last.ans === 'yes' ? 'hit' : 'no'} pop">${last.ans === 'yes' ? 'כן' : 'לא'}</h2></div>`
+    : last && last.kind === 'g' && !last.ok ? '<p class="p">הניחוש הקודם היה דג. אפשר להמשיך לשאול.</p>' : '';
+  if (last && last.kind === 'q' && last.id) { const key = 'a' + last.id; if (!vibed.has(key)) { vibed.add(key); vibrate(last.ans === 'yes' ? [40] : [120]); } }
+  return `<section class="card">${head}${ans}
+    <div class="row"><button type="button" class="btn${gKind === 'q' ? '' : ' ghost'}" data-a="kq">לשאול שאלה</button><button type="button" class="btn${gKind === 'g' ? '' : ' ghost'}" data-a="kg">אני רוצה לנחש</button></div>
+    ${guessForm(gKind === 'g' ? 'שליחת הניחוש' : 'שליחת השאלה', gKind === 'g' ? 'השם שלו' : 'למשל: הוא מהצבא?', gKind === 'g' ? 40 : 120)}
+    <p class="p">נשארו ${max - used} מתוך ${max}. כל שאלה, וכל ניחוש לא נכון, מורידים אחת.</p></section>`;
 }
 function endScreen() {
   const total = st.score ? st.score.total : st.total;
@@ -338,13 +372,18 @@ function bind() {
       const v = gi.value.trim().slice(0, 40);
       if (!K.norm(v)) { gi.focus(); return; }
       if (!st || !st.round) return;
-      if (GROOM) { if (!st.groomOpen) return; draft = ''; gi.blur(); sendGroom(v); }
+      if (GROOM) {
+        if (!st.groomOpen) return;
+        draft = ''; gi.blur();
+        if (st.round.mode === 'q21') { const k = gKind; gKind = 'q'; sendGroom(v, null, k); } else sendGroom(v, null, 'g');
+      }
       else { confirmText = v; gi.blur(); render(); }
     });
   }
   view.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
     const a = b.dataset.a;
     if (a === 'rename') { editingName = true; render(); }
+    else if (a === 'kq' || a === 'kg') { gKind = a === 'kg' ? 'g' : 'q'; render(); const gi = $('#guessIn'); if (gi) gi.focus(); }
     else if (a === 'cancel') { draft = confirmText; confirmText = ''; render(); }
     else if (a === 'confirm') {
       const v = confirmText; confirmText = ''; draft = '';

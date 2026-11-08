@@ -275,6 +275,45 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
 .fishy.two{top:auto;bottom:8%;width:clamp(80px,13vh,190px);animation-duration:3.4s;animation-delay:.25s}
 #confetti{position:absolute;inset:0;z-index:9;pointer-events:none;width:100%;height:100%}
 
+/* 21 questions (show) */
+.board.q21{gap:2.6vh}
+.tally{display:flex;gap:.45vw;flex-wrap:wrap;justify-content:center}
+.tally i{width:min(3vw,4.6vh);height:min(3vw,4.6vh);border-radius:.5vh;border:.25vh solid color-mix(in srgb,var(--phosphor) 25%,transparent);display:grid;place-items:center;font-style:normal;font-family:var(--f-osd);font-size:min(1.8vw,2.8vh);line-height:1;color:color-mix(in srgb,var(--phosphor) 45%,transparent)}
+.tally i.yes{background:var(--hit);border-color:transparent;color:var(--tape)}
+.tally i.no{background:var(--rec);border-color:transparent;color:var(--phosphor)}
+.tally i.fish{background:var(--fish);border-color:transparent;color:var(--tape)}
+.tally i.now{border-color:var(--label);color:var(--label);animation:blink 1s steps(2) infinite}
+.q21-main{width:min(78vw,1200px);min-height:36vh;display:grid;place-items:center}
+.qnote{position:relative;background:var(--paper);color:var(--paper-ink);border-radius:.4vh;padding:3.4vh 4vw;display:grid;justify-items:center;gap:1.4vh;text-align:center;transform:rotate(-1deg);box-shadow:0 2.4vh 4vh color-mix(in srgb,var(--tape) 80%,transparent);max-width:100%;animation:noteIn .45s cubic-bezier(.2,1.3,.4,1) both}
+.qnote::before{content:"";position:absolute;top:-1.4vh;left:50%;width:30%;height:2.8vh;transform:translateX(-50%) rotate(-2deg);background:color-mix(in srgb,var(--label) 72%,transparent)}
+.qn{font-family:var(--f-display);font-weight:700;font-size:clamp(18px,3.6vh,46px);line-height:1;color:color-mix(in srgb,var(--paper-ink) 60%,transparent)}
+.qtext{margin:0;font-family:var(--f-hand);font-weight:700;font-size:clamp(34px,9vh,120px);line-height:1.02;text-wrap:balance;overflow-wrap:anywhere}
+.qtext.long{font-size:clamp(26px,6.2vh,84px)}
+.qwait{font-family:var(--f-osd);font-size:clamp(14px,2.6vh,32px);color:color-mix(in srgb,var(--paper-ink) 55%,transparent);direction:ltr}
+.q-last{display:grid;justify-items:center;gap:2.4vh;text-align:center}
+.q-last .qtext{font-size:clamp(22px,5vh,64px);color:var(--phosphor)}
+.qans{font-family:var(--f-display);font-weight:700;font-size:clamp(60px,18vh,240px);line-height:.85;padding:1.4vh 4vh .4vh;border:1vh solid currentColor;border-radius:2vh;transform:rotate(-6deg);animation:slamBig .45s cubic-bezier(.25,1.5,.45,1) both}
+.qans.yes{color:var(--hit)}
+.qans.no{color:var(--rec)}
+.q-empty{display:grid;justify-items:center;gap:1.6vh;text-align:center}
+.q-empty b{font-family:var(--f-display);font-weight:700;font-size:clamp(30px,8vh,104px);line-height:.9;color:var(--label)}
+.q-empty span{font-size:clamp(15px,3vh,38px);opacity:.85}
+.q21-hist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9vh 4vw;width:min(76vw,1150px);font-size:clamp(13px,2.3vh,28px)}
+.q21-hist li{display:flex;gap:.8vw;align-items:baseline;min-width:0;opacity:.9;background:color-mix(in srgb,var(--tape-2) 70%,transparent);border-radius:.8vh;padding:.5vh 1vw}
+.q21-hist .hn{font-family:var(--f-osd);color:var(--osd);opacity:.7;direction:ltr;flex:none}
+.q21-hist .ht{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q21-hist .ha{flex:none;font-weight:600;margin-inline-start:auto;padding-inline-start:1vw}
+.q21-hist .ha.yes{color:var(--hit)}
+.q21-hist .ha.no{color:var(--rec)}
+.q21-hist .ha.fish{color:var(--fish)}
+#stage:not([data-q21="1"]) .hb-q21{display:none}
+.hostbar .hb-yes{background:color-mix(in srgb,var(--hit) 35%,var(--tape-3))}
+.hostbar .hb-no{background:color-mix(in srgb,var(--rec) 35%,var(--tape-3))}
+.typer-kind{display:flex;gap:1vw;justify-content:center}
+.typer-kind button{border:0;border-radius:1vh;padding:1.2vh 2vw;font:600 2.6vh/1 var(--f-body);cursor:pointer;background:var(--tape-3);color:var(--phosphor)}
+.typer-kind button.main{background:var(--label);color:var(--label-ink)}
+@keyframes blink{50%{opacity:.35}}
+
 /* friends' guesses */
 .friends{display:grid;justify-items:center;gap:4vh;width:100%;max-width:1600px}
 .fr-title{margin:0;font-family:var(--f-display);font-weight:700;font-size:clamp(36px,9vh,120px);line-height:.9;color:var(--label);text-align:center;text-wrap:balance}
@@ -364,6 +403,15 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
 .sil-zoom{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);max-width:340px}
 .sil-zoom input{flex:1;min-width:0;accent-color:var(--accent);direction:ltr}
 .sil-actions{display:flex;gap:6px;flex-wrap:wrap}
+/* 21 questions (editor) */
+.mode-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:500;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--sunk);border:1px solid var(--line);border-radius:11px;padding:4px;width:fit-content;max-width:100%}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:6px 14px;border-radius:8px;font-size:14px;font-weight:500;color:var(--muted)}
+.seg input:checked+span{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 20%,transparent)}
+.seg input:focus-visible+span{outline:2px solid var(--accent)}
+.q21-note{margin:0;font-size:13.5px;color:var(--muted);border:1.5px dashed var(--line);border-radius:12px;padding:12px 14px}
 /* character library */
 .lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px;margin:4px 0 14px}
 .lib-item{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--sunk);overflow:hidden;display:grid;grid-template-rows:auto auto;min-width:0}
@@ -516,6 +564,8 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
         <li><kbd>&larr;</kbd> חזרה צעד</li>
         <li><kbd>T</kbd> הקלדת הניחוש של החתן כאן</li>
         <li><kbd>G</kbd> החתן צדק (תיקון ידני)</li>
+        <li><kbd>Y</kbd><kbd>N</kbd> כן / לא בסבב 21 שאלות</li>
+        <li><kbd>Z</kbd> ביטול התשובה האחרונה</li>
         <li><kbd>D</kbd> איזה דג (תיקון ידני)</li>
         <li><kbd>Q</kbd> הצגת ה-QR בפינה</li>
         <li><kbd>L</kbd> חשיפת אות בשם</li>
@@ -546,8 +596,9 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
   <div class="zoom" id="zoom" hidden></div>
   <div class="typer" id="typer" hidden>
     <form id="typerForm" autocomplete="off">
-      <label for="typerIn">הניחוש של החתן</label>
-      <input type="text" id="typerIn" maxlength="40" autocomplete="off">
+      <label for="typerIn" id="typerLabel">הניחוש של החתן</label>
+      <input type="text" id="typerIn" maxlength="120" autocomplete="off">
+      <div class="typer-kind" id="typerKind" hidden><button type="submit" class="main">שאלה (Enter)</button><button type="button" data-k="g">ניחוש</button></div>
       <small>Enter לשליחה · Esc לביטול</small>
     </form>
   </div>
@@ -556,7 +607,10 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
     <span class="hb-sep" aria-hidden="true"></span>
     <button type="button" data-h="prev">חזרה <kbd>&larr;</kbd></button>
     <button type="button" data-h="next" class="hb-main">הבא <kbd>&rarr;</kbd></button>
-    <button type="button" data-h="type">הקלדת ניחוש <kbd>T</kbd></button>
+    <button type="button" data-h="type">הקלדה <kbd>T</kbd></button>
+    <button type="button" data-h="yes" class="hb-q21 hb-yes">כן <kbd>Y</kbd></button>
+    <button type="button" data-h="no" class="hb-q21 hb-no">לא <kbd>N</kbd></button>
+    <button type="button" data-h="undo" class="hb-q21">ביטול <kbd>Z</kbd></button>
     <button type="button" data-h="right" class="hb-hit">&#x2713; צדק <kbd>G</kbd></button>
     <button type="button" data-h="wrong" class="hb-fish">איזה דג <kbd>D</kbd></button>
     <button type="button" data-h="qr">QR <kbd>Q</kbd></button>
@@ -662,7 +716,7 @@ let G = null; // { settings, rounds }
 let L = null; // live game state (results, guesses, position)
 const SIL_DEFAULT = () => ({ media: null, mode: null, fit: null, base: null, slot: 'auto', meta: null, fitSlot: null });
 function newRound(over) {
-  const r = Object.assign({ id: 'r' + Date.now().toString(36) + K.rid(4), name: '', aliases: '', caption: '', clues: [{ media: null, text: '' }, { media: null, text: '' }, { media: null, text: '' }], video: null, example: false }, over || {});
+  const r = Object.assign({ id: 'r' + Date.now().toString(36) + K.rid(4), mode: 'clues', name: '', aliases: '', caption: '', clues: [{ media: null, text: '' }, { media: null, text: '' }, { media: null, text: '' }], video: null, example: false }, over || {});
   r.sil = Object.assign(SIL_DEFAULT(), (over && over.sil) || {});
   return r;
 }
@@ -690,7 +744,7 @@ function normGame(g) {
   return g;
 }
 function newLive() {
-  return { session: K.rid(6), pos: { view: 'intro', rid: null, stage: 0 }, results: {}, used: {}, groomLog: {}, groomLast: null, friends: {}, locked: {}, letters: {}, processed: {}, revealed: {}, t0: 0 };
+  return { session: K.rid(6), pos: { view: 'intro', rid: null, stage: 0 }, results: {}, used: {}, groomLog: {}, groomLast: null, friends: {}, locked: {}, letters: {}, processed: {}, revealed: {}, q: {}, t0: 0 };
 }
 function normLive(l) {
   l = l && typeof l === 'object' ? l : newLive();
@@ -1167,7 +1221,7 @@ function renderSettings() { for (const inp of $$('[data-s]')) setVal(inp, G.sett
 function missing(r) {
   const m = [];
   if (!r.name.trim()) m.push('שם');
-  if (!r.clues.some(c => c.media || c.text.trim())) m.push('רמזים');
+  if (r.mode !== 'q21' && !r.clues.some(c => c.media || c.text.trim())) m.push('רמזים');
   if (!r.video) m.push('סרטון');
   return m;
 }
@@ -1188,6 +1242,9 @@ function makeCard(id) {
     </div>
   </header>
   <div class="tape-body">
+    <div class="mode-row"><span>מסלול</span><div class="seg" role="radiogroup" aria-label="מסלול המשחק">
+      <label><input type="radio" name="mode-${id}" id="modeC-${id}" value="clues" data-f="mode"><span>3 רמזים</span></label>
+      <label><input type="radio" name="mode-${id}" id="modeQ-${id}" value="q21" data-f="mode"><span>21 שאלות</span></label></div></div>
     <div class="two">
       <label class="fld"><span>עוד שמות שנחשבים נכונים <em>· כינוי או איות אחר, מופרדים בפסיק</em></span><input type="text" data-f="aliases" id="ali-${id}" placeholder="למשל: הג׳ינג׳י, אורי" autocomplete="off" maxlength="160"></label>
       <label class="fld"><span>מי זה בשבילו <em>· מופיע ליד הסרטון, לא חובה</em></span><input type="text" data-f="caption" id="cap-${id}" placeholder="למשל: המדריך מהצופים, 2009" autocomplete="off" maxlength="80"></label>
@@ -1199,6 +1256,7 @@ function makeCard(id) {
         <textarea data-f="clue${i}" id="clue${i}-${id}" rows="2" placeholder="טקסט לרמז (לא חובה)" maxlength="160"></textarea>
       </div>`).join('')}
     </div>
+    <p class="q21-note" data-x="q21note" hidden>בסבב הזה אין רמזים. החתן שואל מהטלפון עד 21 שאלות של כן ולא, ואתה עונה במקלדת: Y כן, N לא. ניחוש נכון מסמנים ב-G, ניחוש לא נכון ב-D.</p>
     <div class="vid" data-x="vid" data-drop="vid"></div>
     <div class="sil" data-x="sil" data-drop="sil">
       <canvas class="sil-cv" data-x="silcv" width="400" height="500" aria-label="תצוגה של הדמות בפוסטר"></canvas>
@@ -1261,6 +1319,9 @@ function patchStatus(el, r) {
 }
 function patchCard(el, r, idx, total) {
   el.querySelector('[data-x="no"]').textContent = pad(idx + 1);
+  const q21 = r.mode === 'q21';
+  el.querySelector(`#modeC-${r.id}`).checked = !q21; el.querySelector(`#modeQ-${r.id}`).checked = q21;
+  el.querySelector('.clues').hidden = q21; el.querySelector('[data-x="q21note"]').hidden = !q21;
   setVal(el.querySelector('[data-f="name"]'), r.name);
   setVal(el.querySelector('[data-f="aliases"]'), r.aliases);
   setVal(el.querySelector('[data-f="caption"]'), r.caption);
@@ -1435,6 +1496,7 @@ function bindEditor() {
     const f = e.target.dataset.f; if (!f) return;
     const card = e.target.closest('.tape'); const r = card && findRound(card.dataset.id); if (!r) return;
     if (f === 'slot') return;
+    if (f === 'mode') { r.mode = e.target.value === 'q21' ? 'q21' : 'clues'; saveGame(0); patchOne(r.id); return; }
     if (f === 'zoom') {
       if (!r.sil.fit || !r.sil.base) return;
       const sl = SLOTS[(SLOTMAP[r.id] || 1) - 1];
@@ -1607,7 +1669,9 @@ function onFriendGuess(session, rid, pid, d) {
 function onGroomMsg(session, rid, stage, d) {
   if (session !== L.session || !d.id || L.processed[d.id]) return;
   const r = curRound();
-  if (!SH.on || SH.view !== 'board' || !r || r.id !== rid || SH.stage !== stage) return;
+  if (!SH.on || SH.view !== 'board' || !r || r.id !== rid) return;
+  if (isQ(r)) { if (stage === qUsed(r)) q21Incoming(d.kind === 'g' ? 'g' : 'q', d.guess, String(d.id).slice(0, 40)); return; }
+  if (SH.stage !== stage) return;
   groomGuess(clip(d.guess, 40), String(d.id).slice(0, 40));
 }
 
@@ -1635,9 +1699,17 @@ function stateMsg() {
     return st;
   }
   const res = L.results[r.id], used = L.used[r.id] || {};
-  st.round = { id: r.id, n: SH.ri + 1, stage: SH.stage, nClues: r.clues.length, pattern: patternWithLetters(r) };
+  const q = isQ(r);
+  st.round = { id: r.id, n: SH.ri + 1, mode: q ? 'q21' : 'clues', stage: SH.stage, step: q ? qUsed(r) : SH.stage, nClues: r.clues.length, pattern: q ? '' : patternWithLetters(r) };
+  if (q) {
+    const Q = qs(r), last = Q.items[Q.items.length - 1];
+    st.round.used = qUsed(r); st.round.max = Q21;
+    st.round.pending = Q.pending ? { id: Q.pending.id, kind: Q.pending.kind, text: Q.pending.text } : null;
+    st.round.last = last ? { id: last.id || null, kind: last.kind, text: last.text, ans: last.ans || null, ok: last.kind === 'g' ? !!last.ok : null } : null;
+  }
   st.open = v === 'board' && !L.locked[r.id];
-  st.groomOpen = SH.on && v === 'board' && !SH.verdict && !(res && res.ok) && !used[SH.stage];
+  st.groomOpen = q ? (SH.on && v === 'board' && !SH.verdict && !res && !qs(r).pending && qUsed(r) < Q21)
+    : (SH.on && v === 'board' && !SH.verdict && !(res && res.ok) && !used[SH.stage]);
   st.groomLast = L.groomLast && L.groomLast.rid === r.id ? { id: L.groomLast.id, ok: L.groomLast.ok } : null;
   st.got = Object.keys(L.friends[r.id] || {});
   if (v === 'reveal' || v === 'fill') {
@@ -1670,8 +1742,8 @@ const clearTimers = () => { SH.timers.forEach(clearTimeout); SH.timers = []; };
 
 function buildRounds() {
   SH.rounds = G.rounds.filter(r => r.name.trim()).map(r => ({
-    id: r.id, name: r.name.trim(), aliases: r.aliases, caption: r.caption.trim(),
-    clues: r.clues.filter(c => (c.media && M.get(c.media)) || c.text.trim()).map(c => ({ media: c.media && M.get(c.media) ? c.media : null, text: c.text.trim() })),
+    id: r.id, mode: r.mode === 'q21' ? 'q21' : 'clues', name: r.name.trim(), aliases: r.aliases, caption: r.caption.trim(),
+    clues: r.mode === 'q21' ? [] : r.clues.filter(c => (c.media && M.get(c.media)) || c.text.trim()).map(c => ({ media: c.media && M.get(c.media) ? c.media : null, text: c.text.trim() })),
     video: r.video && M.get(r.video) ? r.video : null
   }));
 }
@@ -1739,7 +1811,7 @@ function startShow(mode) {
     if (ri < 0) { toast('לסבב הזה עוד אין שם, אז הוא לא נכנס למשחק.'); return; }
     SH.ri = ri; SH.view = 'board'; SH.stage = 0;
     const rid = SH.rounds[ri].id;
-    delete L.results[rid]; delete L.used[rid]; delete L.locked[rid]; delete L.letters[rid];
+    delete L.results[rid]; delete L.used[rid]; delete L.locked[rid]; delete L.letters[rid]; delete L.q[rid];
   }
   if (!L.t0) L.t0 = Date.now();
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -1876,6 +1948,7 @@ function renderLobbyPlayers() {
   ul.innerHTML = list.slice(-24).map(p => `<li>${esc(p.name)}</li>`).join('');
 }
 function boardHTML() {
+  if (isQ(curRound())) return q21HTML();
   const r = curRound(), n = r.clues.length, rots = [-2.2, 1.8, -1.1];
   return `<section class="board" data-n="${n}">
     <header class="b-head"><span class="b-tape">קלטת ${SH.ri + 1}</span><span class="b-dot">/</span><span class="b-step" id="bStep"></span><span class="b-count" id="bCount" hidden></span></header>
@@ -1895,6 +1968,7 @@ function friendsHTML() {
 function resText(res) {
   if (!res) return '–';
   if (!res.ok) return 'לא זיהה';
+  if (res.q != null) return res.q === 0 ? 'זיהה בלי שאלות!' : `זיהה אחרי ${res.q} שאלות`;
   if (res.at === 0) return 'זיהה בלי רמזים!';
   return `זיהה ברמז ${res.at}`;
 }
@@ -1988,7 +2062,7 @@ async function runPoster(newRid, animate) {
 /* history (for the back key) */
 function snap() {
   const r = curRound(), id = r && r.id;
-  return { view: SH.view, ri: SH.ri, stage: SH.stage, rid: id, res: id ? clone(L.results[id]) : null, used: id ? clone(L.used[id]) : null, locked: id ? !!L.locked[id] : false, groomLast: clone(L.groomLast) };
+  return { view: SH.view, ri: SH.ri, stage: SH.stage, rid: id, q: id ? clone(L.q[id]) : null, res: id ? clone(L.results[id]) : null, used: id ? clone(L.used[id]) : null, locked: id ? !!L.locked[id] : false, groomLast: clone(L.groomLast) };
 }
 function pushHist() { SH.hist.push(snap()); if (SH.hist.length > 80) SH.hist.shift(); }
 function restore(h) {
@@ -1997,6 +2071,7 @@ function restore(h) {
     if (h.res) L.results[h.rid] = h.res; else delete L.results[h.rid];
     if (h.used) L.used[h.rid] = h.used; else delete L.used[h.rid];
     if (h.locked) L.locked[h.rid] = true; else delete L.locked[h.rid];
+    if (h.q) L.q[h.rid] = h.q; else delete L.q[h.rid];
   }
   L.groomLast = h.groomLast;
 }
@@ -2016,6 +2091,7 @@ function render(dir) {
   const r = curRound();
   $('#osdCh').textContent = SH.view !== 'intro' && SH.view !== 'cover' && r ? `CH ${pad(SH.ri + 1)}/${pad(SH.rounds.length)}` : `CH --/${pad(SH.rounds.length)}`;
   stage.dataset.view = SH.view;
+  stage.dataset.q21 = SH.view === 'board' && isQ(r) ? '1' : '';
   if (SH.view !== 'reveal') for (const v of SH.videos.values()) v.pause();
   SH.posterToken = (SH.posterToken || 0) + 1;
   if (SH.view === 'cover') { setView('cover', posterHTML(null), true); runPoster(null, false); }
@@ -2038,6 +2114,7 @@ function render(dir) {
   setCue();
 }
 function updateBoard(dir, fresh) {
+  if (isQ(curRound())) { updateQ21(); return; }
   const r = curRound(), n = r.clues.length, s = SH.stage;
   const res = L.results[r.id];
   $$('.pol', scr).forEach((el, j) => {
@@ -2097,6 +2174,7 @@ function afterVerdict(silent) {
   hideVerdictLayer();
   if (silent) { publishState(); return; }
   const r = curRound(), res = L.results[r.id];
+  if (isQ(r)) { if (res) finale(); else commit(0); return; }
   if ((res && res.ok) || SH.stage >= r.clues.length) finale();
   else { SH.stage++; commit(1); }
 }
@@ -2127,9 +2205,120 @@ function groomGuess(text, id) {
   showVerdict(ok, text, ok ? '' : last ? 'נגמרו הרמזים' : 'ממשיכים לרמז הבא');
   return true;
 }
+/* ---------- 21 questions: the groom asks yes/no questions, the host answers ---------- */
+const Q21 = 21;
+const isQ = r => !!r && r.mode === 'q21';
+function qs(r) { return L.q[r.id] || (L.q[r.id] = { items: [], pending: null }); }
+const qUsed = r => qs(r).items.filter(it => it.kind === 'q' || !it.ok).length;
+const qAsked = r => qs(r).items.filter(it => it.kind === 'q').length;
+function q21HTML() {
+  return `<section class="board q21" data-n="0">
+    <header class="b-head"><span class="b-tape">קלטת ${SH.ri + 1}</span><span class="b-dot">/</span><span class="b-step" id="bStep"></span><span class="b-count" id="bCount" hidden></span></header>
+    <div class="tally" id="qTally" aria-hidden="true"></div>
+    <div class="cards-wrap"><div class="q21-main" id="qMain"></div><div class="verdict" id="verdict" hidden></div></div>
+    <ol class="q21-hist" id="qHist"></ol>
+  </section>`;
+}
+function updateQ21() {
+  const r = curRound(), Q = qs(r), used = qUsed(r);
+  const step = $('#bStep'); if (!step) return;
+  step.textContent = Q.pending ? (Q.pending.kind === 'g' ? 'החתן מנחש' : `שאלה ${used + 1} מתוך ${Q21}`) : `21 שאלות · נוצלו ${used}`;
+  const cells = Q.items.filter(it => !(it.kind === 'g' && it.ok)).map(it => it.kind === 'q' ? (it.ans === 'yes' ? 'yes' : 'no') : 'fish');
+  $('#qTally').innerHTML = Array.from({ length: Q21 }, (_, i) => {
+    const c = cells[i], now = !c && i === cells.length && Q.pending;
+    return `<i class="${c || ''}${now ? ' now' : ''}">${c === 'yes' ? '✓' : c ? '✗' : i + 1}</i>`;
+  }).join('');
+  const main = $('#qMain'), last = Q.items[Q.items.length - 1];
+  if (Q.pending) {
+    const t = Q.pending.text;
+    main.innerHTML = `<div class="qnote"><span class="qn">${Q.pending.kind === 'g' ? 'הניחוש של החתן' : `שאלה ${used + 1}`}</span><p class="qtext${t.length > 38 ? ' long' : ''}">${esc(t)}</p><span class="qwait">${Q.pending.kind === 'g' ? 'G = ✓ · D = ✗' : 'Y = כן · N = לא'}</span></div>`;
+  } else if (last && last.kind === 'q') {
+    main.innerHTML = `<div class="q-last"><p class="qtext">${esc(last.text)}</p><div class="qans ${last.ans}"${SH.qFresh ? '' : ' style="animation:none"'}>${last.ans === 'yes' ? 'כן!' : 'לא'}</div></div>`;
+  } else {
+    main.innerHTML = `<div class="q-empty"><b>${Q.items.length ? 'השאלה הבאה?' : 'מי זה?'}</b><span>${Q.items.length ? `נשארו ${Q21 - used} הזדמנויות` : 'עד 21 שאלות של כן ולא. אפשר לנחש בכל רגע.'}</span></div>`;
+  }
+  SH.qFresh = false;
+  const hist = Q.items.map((it, i) => ({ it, i })).reverse();
+  const rest = !Q.pending && last && last.kind === 'q' ? hist.slice(1) : hist;
+  $('#qHist').innerHTML = rest.slice(0, 8).map(({ it, i }) => `<li><span class="hn">${pad(i + 1)}</span><span class="ht">${esc(it.text || (it.kind === 'g' ? 'ניחוש' : ''))}</span><span class="ha ${it.kind === 'q' ? it.ans : it.ok ? 'yes' : 'fish'}">${it.kind === 'q' ? (it.ans === 'yes' ? 'כן' : 'לא') : it.ok ? 'נכון!' : 'דג'}</span></li>`).join('');
+  updateCount();
+}
+function q21Incoming(kind, text, id) {
+  if (!SH.on || SH.view !== 'board' || SH.verdict) return false;
+  const r = curRound(); if (!isQ(r)) return false;
+  const Q = qs(r);
+  if (Q.pending || L.results[r.id] || qUsed(r) >= Q21) return false;
+  text = clip(text, 120); if (!text) return false;
+  if (id) L.processed[id] = 1;
+  Q.pending = { kind, text, id: id || 'host' + Date.now() };
+  saveLive(); publishState(); updateQ21(); setCue();
+  tone(kind === 'g' ? 520 : 700, 0, 0.12, 'triangle', 0.15);
+  return true;
+}
+function q21Answer(ans) {
+  const r = curRound();
+  if (!SH.on || SH.view !== 'board' || SH.verdict || !isQ(r)) return;
+  const Q = qs(r);
+  if (!Q.pending) { setOSD('NO QUESTION', 900); return; }
+  if (Q.pending.kind === 'g') { setOSD('G / D', 900); return; }
+  pushHist();
+  Q.items.push({ kind: 'q', text: Q.pending.text, ans, id: Q.pending.id });
+  Q.pending = null; SH.qFresh = true;
+  saveLive(); publishState(); updateQ21(); setCue();
+  if (ans === 'yes') { tone(660, 0, 0.14, 'triangle', 0.2); tone(990, 0.1, 0.22, 'triangle', 0.18); } else tone(180, 0, 0.35, 'square', 0.08);
+  if (qUsed(r) >= Q21) later(() => {
+    if (SH.view !== 'board' || curRound() !== r || L.results[r.id]) return;
+    L.results[r.id] = { ok: false, guess: '' }; saveLive();
+    showVerdict(false, '', 'נגמרו 21 ההזדמנויות');
+  }, 2000);
+}
+function q21Right() {
+  const r = curRound(), Q = qs(r);
+  if (SH.verdict && SH.verdict.ok) return;
+  if (!SH.verdict) pushHist();
+  let text = Q.pending ? Q.pending.text : SH.verdict ? SH.verdict.text : '';
+  let id = Q.pending ? Q.pending.id : null;
+  if (SH.verdict && !SH.verdict.ok) {
+    const last = Q.items[Q.items.length - 1];
+    if (last && last.kind === 'g' && !last.ok) { Q.items.pop(); id = last.id; }
+  }
+  const asked = qAsked(r);
+  Q.items.push({ kind: 'g', text, ok: true, id });
+  Q.pending = null;
+  L.groomLast = { rid: r.id, id: id || 'host' + Date.now(), ok: true };
+  L.results[r.id] = { ok: true, q: asked, guess: text };
+  saveLive();
+  showVerdict(true, text, '');
+}
+function q21Wrong() {
+  const r = curRound(), Q = qs(r);
+  if (SH.verdict && !SH.verdict.ok) return;
+  if (!SH.verdict) pushHist();
+  let text = Q.pending ? Q.pending.text : SH.verdict ? SH.verdict.text : '';
+  let id = Q.pending ? Q.pending.id : null;
+  if (SH.verdict && SH.verdict.ok) {
+    const last = Q.items[Q.items.length - 1];
+    if (last && last.kind === 'g' && last.ok) { Q.items.pop(); id = last.id; }
+    delete L.results[r.id];
+  }
+  Q.items.push({ kind: 'g', text, ok: false, id });
+  Q.pending = null;
+  L.groomLast = { rid: r.id, id: id || 'host' + Date.now(), ok: false };
+  const left = Q21 - qUsed(r);
+  if (left <= 0) L.results[r.id] = { ok: false, guess: text };
+  saveLive();
+  showVerdict(false, text, left <= 0 ? 'נגמרו 21 ההזדמנויות' : `נשארו ${left} הזדמנויות`);
+}
+function q21Undo() {
+  const r = curRound(), h = SH.hist[SH.hist.length - 1];
+  if (SH.view !== 'board' || !isQ(r)) return;
+  if (h && h.view === 'board' && h.rid === r.id) prev(); else setOSD('NOTHING TO UNDO', 900);
+}
+
 /* host overrides: G = he was right, D = he was wrong */
 function markRight() {
   const r = curRound(); if (!r) return;
+  if (SH.view === 'board' && isQ(r)) { q21Right(); return; }
   if (SH.view === 'board') {
     if (SH.verdict && SH.verdict.ok) return;
     if (!SH.verdict) pushHist();
@@ -2148,6 +2337,7 @@ function markRight() {
 }
 function markWrong() {
   const r = curRound(); if (!r) return;
+  if (SH.view === 'board' && isQ(r)) { q21Wrong(); return; }
   if (SH.view === 'board') {
     if (SH.verdict && !SH.verdict.ok) return;
     if (!SH.verdict) pushHist();
@@ -2236,6 +2426,10 @@ function setCue() {
   if (SH.view === 'cover') t = '→ למסך ההצטרפות';
   else if (SH.view === 'fill') t = SH.ri === SH.rounds.length - 1 ? '→ לסיכום' : '→ לקלטת הבאה';
   else if (SH.view === 'intro') t = '→ לקלטת הראשונה';
+  else if (SH.view === 'board' && isQ(r)) {
+    const Q = qs(r);
+    t = SH.verdict ? '→ להמשיך' : Q.pending ? (Q.pending.kind === 'g' ? 'G נכון · D איזה דג · Z ביטול' : 'Y כן · N לא · Z ביטול') : 'T הקלדה במחשב · → פעמיים לסיום הסבב';
+  }
   else if (SH.view === 'board') {
     if (SH.verdict) t = '→ להמשיך';
     else if (SH.stage < r.clues.length) t = `→ ${SH.stage === 0 ? 'הרמז הראשון' : 'הרמז הבא'}   ·   T ניחוש של החתן`;
@@ -2254,6 +2448,12 @@ function next() {
   if (SH.view === 'intro') { pushHist(); SH.view = 'board'; SH.stage = 0; commit(1); return; }
   if (SH.view === 'board') {
     if (L.results[r.id]) { pushHist(); finale(); return; }
+    if (isQ(r)) {
+      const now = Date.now();
+      if (now - (SH.giveUpAt || 0) < 2500) { SH.giveUpAt = 0; pushHist(); qs(r).pending = null; L.results[r.id] = { ok: false, guess: '' }; saveLive(); showVerdict(false, '', 'הסבב נגמר'); }
+      else { SH.giveUpAt = now; setOSD('→ AGAIN = END', 2400); $('#cue').textContent = '→ עוד פעם כדי לסיים את הסבב'; }
+      return;
+    }
     if (SH.stage < r.clues.length) { pushHist(); SH.stage++; commit(1); return; }
     pushHist();
     const used = L.used[r.id] || (L.used[r.id] = {}); used[SH.stage] = true;
@@ -2319,7 +2519,9 @@ function toggleQR() {
 function openTyper() {
   if (SH.view !== 'board' || SH.verdict) { setOSD('NOT NOW', 900); return; }
   const r = curRound(), res = L.results[r.id], used = L.used[r.id] || {};
-  if ((res && res.ok) || used[SH.stage]) { setOSD('NOT NOW', 900); return; }
+  if (isQ(r) ? (res || qs(r).pending || qUsed(r) >= Q21) : ((res && res.ok) || used[SH.stage])) { setOSD('NOT NOW', 900); return; }
+  $('#typerLabel').textContent = isQ(r) ? 'מה החתן שואל?' : 'הניחוש של החתן';
+  $('#typerKind').hidden = !isQ(r);
   $('#typer').hidden = false;
   const i = $('#typerIn'); i.value = ''; i.focus();
 }
@@ -2328,7 +2530,14 @@ $('#typerForm').addEventListener('submit', e => {
   e.preventDefault();
   const v = $('#typerIn').value.trim();
   closeTyper();
-  if (v) groomGuess(v, 'host' + Date.now());
+  if (!v) return;
+  if (isQ(curRound())) q21Incoming('q', v); else groomGuess(v, 'host' + Date.now());
+});
+$('#typerKind').addEventListener('click', e => {
+  if (!e.target.closest('[data-k="g"]')) return;
+  const v = $('#typerIn').value.trim();
+  closeTyper();
+  if (v) q21Incoming('g', v);
 });
 $('#typerIn').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeTyper(); } else e.stopPropagation(); });
 
@@ -2343,6 +2552,9 @@ window.addEventListener('keydown', e => {
   else if (k === ' ' || c === 'Space') { if (!toggleVideo()) next(); }
   else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace') prev();
   else if (c === 'KeyT') openTyper();
+  else if (c === 'KeyY') q21Answer('yes');
+  else if (c === 'KeyN') q21Answer('no');
+  else if (c === 'KeyZ') q21Undo();
   else if (c === 'KeyG') markRight();
   else if (c === 'KeyD') markWrong();
   else if (c === 'KeyL') revealLetter();
@@ -2365,7 +2577,7 @@ stage.addEventListener('click', e => {
 $('#hostbar').addEventListener('click', e => {
   const b = e.target.closest('[data-h]'); if (!b) return;
   b.blur();
-  ({ exit: exitShow, prev, next, type: openTyper, right: markRight, wrong: markWrong, qr: toggleQR, fs: toggleFs })[b.dataset.h]();
+  ({ exit: exitShow, prev, next, type: openTyper, right: markRight, wrong: markWrong, qr: toggleQR, fs: toggleFs, yes: () => q21Answer('yes'), no: () => q21Answer('no'), undo: q21Undo })[b.dataset.h]();
 });
 let idleT = 0;
 function wakeBar() {
