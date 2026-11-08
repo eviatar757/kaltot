@@ -364,6 +364,25 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
 .sil-zoom{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);max-width:340px}
 .sil-zoom input{flex:1;min-width:0;accent-color:var(--accent);direction:ltr}
 .sil-actions{display:flex;gap:6px;flex-wrap:wrap}
+/* character library */
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px;margin:4px 0 14px}
+.lib-item{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--sunk);overflow:hidden;display:grid;grid-template-rows:auto auto;min-width:0}
+.lib-item.used{border-color:color-mix(in srgb,var(--ok) 60%,var(--line))}
+.lib-thumb{aspect-ratio:2/3;background:radial-gradient(120% 80% at 50% 20%,#6b3a1c,#1d1210);display:grid;place-items:end center;overflow:hidden}
+.lib-thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.lib-meta{padding:6px 8px 8px;display:grid;gap:2px;min-width:0}
+.lib-meta b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;text-align:right}
+.lib-meta span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-item.used .lib-meta span{color:var(--ok)}
+.lib-x{position:absolute;top:6px;left:6px;min-width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 6px}
+.lib-x:hover{color:var(--bad);border-color:var(--bad)}
+.lib-empty{border:1.5px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);grid-column:1/-1}
+.picker{flex:1 1 100%;display:grid;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.picker-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.picker .lib{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:0}
+.picker .lib-item{cursor:pointer;font:inherit;color:inherit;text-align:inherit;padding:0}
+.picker .lib-item:hover{border-color:var(--accent)}
+.picker .lib-item.mine{outline:2px solid var(--accent);outline-offset:-2px}
 /* poster on stage */
 .poster{position:absolute;inset:0;background:var(--tape)}
 .poster canvas{width:100%;height:100%;object-fit:contain;display:block}
@@ -433,6 +452,14 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
           <div class="ph-actions"><button type="button" class="btn btn-sm" id="copyPrompt">העתקת הפרומפט</button></div>
         </div>
       </div>
+    </section>
+
+    <section class="panel" aria-labelledby="libH">
+      <div class="rounds-head"><h2 id="libH" class="sec-h">מאגר הדמויות <span class="count" id="libCount"></span></h2>
+        <p class="sec-note">הדמויות לפוסטר. בכרטיס של כל אדם בוחרים מכאן את הדמות שלו.</p></div>
+      <div class="lib" id="libGrid"></div>
+      <div class="ph-actions"><button type="button" class="btn" id="libAdd">הוספת קובץ ZIP או תמונות</button><span class="ready" id="libProg"></span></div>
+      <input type="file" id="libFile" accept=".zip,application/zip,image/*" multiple hidden>
     </section>
 
     <section class="panel" aria-labelledby="phH">
@@ -542,6 +569,7 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
 <script src="lib/mqtt.min.js"></script>
 <script src="lib/qrcode.js"></script>
 <script src="lib/relay.js"></script>
+<script src="lib/fflate.js"></script>
 <script>
 (() => {
 'use strict';
@@ -611,7 +639,7 @@ async function addMedia(blob, kind, name) {
   askPersist();
   return id;
 }
-function isRef(id) { return G.settings.poster === id || G.rounds.some(r => r.video === id || (r.sil && r.sil.media === id) || r.clues.some(c => c.media === id)); }
+function isRef(id) { return G.settings.poster === id || G.library.some(it => it.id === id) || G.rounds.some(r => r.video === id || (r.sil && r.sil.media === id) || r.clues.some(c => c.media === id)); }
 async function dropMedia(id) {
   if (!id || isRef(id)) return;
   const m = M.get(id);
@@ -653,6 +681,7 @@ function normGame(g) {
   if (!g.settings.code) g.settings.code = K.rid(6);
   if (!g.settings.groomKey) g.settings.groomKey = K.rid(8);
   if (!g.settings.poster) g.settings.poster = null;
+  g.library = Array.isArray(g.library) ? g.library.filter(it => it && it.id) : [];
   g.rounds = (Array.isArray(g.rounds) ? g.rounds : []).map(r => {
     const n = newRound(r);
     n.clues = [0, 1, 2].map(i => ({ media: (r.clues && r.clues[i] && r.clues[i].media) || null, text: String((r.clues && r.clues[i] && r.clues[i].text) || '') }));
@@ -784,10 +813,10 @@ function headOf(A, w, h) {
   for (let y = h - 1; y >= 0; y--) if (span(y)) { bot = y; break; }
   if (top < 0 || bot - top < 20) return null;
   const Hh = bot - top, ws = [], cs = [];
-  for (let y = Math.round(top + Hh * 0.03); y <= top + Hh * 0.09; y++) { const sp = span(y); if (sp) { ws.push(sp[1] - sp[0] + 1); cs.push((sp[0] + sp[1]) / 2); } }
+  for (let y = Math.round(top + Hh * 0.03); y <= top + Hh * 0.05; y++) { const sp = span(y); if (sp) { ws.push(sp[1] - sp[0] + 1); cs.push((sp[0] + sp[1]) / 2); } }
   if (!ws.length) return null;
   const med = a => a.slice().sort((p, q) => p - q)[a.length >> 1];
-  return { top, w: med(ws), cx: med(cs) };
+  return { top, w: med(ws) * 1.1, cx: med(cs) };
 }
 function autoFit(meta, n, mode) {
   const sl = SLOTS[(n || 1) - 1];
@@ -814,11 +843,19 @@ function makeFill(r, n) {
     const [img, mask] = await Promise.all([loadImg(m.url), loadImg(maskSrc(n))]);
     const cv = document.createElement('canvas'); cv.width = bw; cv.height = bh;
     const x = cv.getContext('2d');
-    x.filter = sil.mode === 'face' ? 'brightness(0.86) contrast(1.1) saturate(0.9) sepia(0.12)' : 'brightness(0.8) contrast(1.12) saturate(0.88) sepia(0.14)';
-    x.drawImage(img, sil.fit.x - bx, sil.fit.y - by, img.naturalWidth * sil.fit.s, img.naturalHeight * sil.fit.s);
+    x.filter = sil.mode === 'face' ? 'brightness(0.86) contrast(1.12) saturate(0.92)' : 'brightness(0.8) contrast(1.2) saturate(0.95)';
+    const fy = sil.fit.y - by, fh = img.naturalHeight * sil.fit.s;
+    x.drawImage(img, sil.fit.x - bx, fy, img.naturalWidth * sil.fit.s, fh);
     x.filter = 'none';
     x.globalCompositeOperation = 'destination-in';
     x.drawImage(mask, 0, 0, bw, bh);
+    if (sil.mode !== 'face') {
+      /* the picture ends at the knees: let its lower part sink into the dark silhouette */
+      const g0 = fy + fh * 0.7, g1 = fy + fh * 0.97;
+      const fade = x.createLinearGradient(0, g0, 0, g1);
+      fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = fade; x.fillRect(0, 0, bw, bh);
+    }
     if (sil.mode === 'face') {
       x.save();
       x.translate(sl.hx - bx, sl.ht + sl.hw * 0.62 - by); x.scale(sl.hw * 0.62, sl.hw * 0.8);
@@ -829,7 +866,7 @@ function makeFill(r, n) {
     }
     x.globalCompositeOperation = 'source-atop';
     const gr = x.createLinearGradient(0, 0, 0, bh);
-    gr.addColorStop(0, 'rgba(255,150,60,0.16)'); gr.addColorStop(0.35, 'rgba(255,120,40,0.05)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)');
+    gr.addColorStop(0, 'rgba(255,150,60,0.08)'); gr.addColorStop(0.3, 'rgba(0,0,0,0.05)'); gr.addColorStop(1, 'rgba(0,0,0,0.6)');
     x.fillStyle = gr; x.fillRect(0, 0, bw, bh);
     x.globalCompositeOperation = 'source-over';
     return { cv, bx, by };
@@ -860,6 +897,81 @@ async function onPosterFile(file) {
     if (Math.abs(ratio - PW / PH) > 0.03) toast('נראה שזו תמונה אחרת מהפוסטר המקורי. הצלליות מסומנות לפי התמונה של אור, אז הן לא יתאימו לתמונה הזו.', 8000);
     else toast('תמונת הפתיחה נשמרה.');
   } catch (e) { toast(errText(e)); }
+}
+
+/* character library: pictures for the poster, imported once and picked per person */
+const libLabel = name => String(name || '').replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 40) || 'דמות';
+const libUser = id => G.rounds.find(r => r.sil && r.sil.media === id);
+function renderLibrary() {
+  const grid = $('#libGrid');
+  $('#libCount').textContent = G.library.length ? `(${G.library.length})` : '';
+  if (!G.library.length) { grid.innerHTML = '<div class="lib-empty">עוד אין דמויות. מעלים קובץ ZIP עם כל התמונות, או כמה תמונות בבת אחת.</div>'; return; }
+  grid.innerHTML = G.library.map(it => {
+    const m = M.get(it.id), u = libUser(it.id);
+    return `<div class="lib-item${u ? ' used' : ''}"><div class="lib-thumb">${m ? `<img src="${m.url}" alt="" loading="lazy">` : ''}</div>
+      <div class="lib-meta"><b title="${esc(it.label)}">${esc(it.label)}</b><span>${u ? 'אצל ' + esc(u.name || 'בלי שם') : 'פנויה'}</span></div>
+      <button type="button" class="lib-x" data-lib-del="${esc(it.id)}" aria-label="הסרה מהמאגר">✕</button></div>`;
+  }).join('');
+}
+function pickerHTML(r) {
+  if (!G.library.length) return `<div class="picker"><div class="picker-head"><span>המאגר ריק. מעלים דמויות בחלק «מאגר הדמויות» למעלה.</span><button type="button" class="mt" data-act="pick-close">סגירה</button></div></div>`;
+  return `<div class="picker"><div class="picker-head"><span>בוחרים את הדמות של ${esc(r.name || 'האדם הזה')}</span><button type="button" class="mt" data-act="pick-close">סגירה</button></div>
+    <div class="lib">${G.library.map(it => {
+      const m = M.get(it.id), u = libUser(it.id);
+      return `<button type="button" class="lib-item${u ? ' used' : ''}${u && u.id === r.id ? ' mine' : ''}" data-act="pick-lib" data-lib="${esc(it.id)}"><div class="lib-thumb">${m ? `<img src="${m.url}" alt="" loading="lazy">` : ''}</div>
+        <div class="lib-meta"><b>${esc(it.label)}</b><span>${u ? (u.id === r.id ? 'נבחרה' : 'אצל ' + esc(u.name || 'בלי שם')) : 'פנויה'}</span></div></button>`;
+    }).join('')}</div></div>`;
+}
+async function assignLib(r, libId) {
+  const it = G.library.find(x => x.id === libId); if (!it) return;
+  const prev = libUser(libId);
+  if (prev && prev.id !== r.id) { Object.assign(prev.sil, { media: null, mode: null, fit: null, base: null, meta: null, fitSlot: null }); toast(`הדמות עברה מ${prev.name || 'אדם אחר'} ל${r.name || 'האדם הזה'}.`); }
+  const old = r.sil.media;
+  r.sil.media = it.id; r.sil.mode = it.mode; r.sil.meta = it.meta;
+  refit(r);
+  saveGame(0);
+  await dropMedia(old);
+  syncList(); renderLibrary();
+}
+async function importLibrary(files) {
+  const items = [];
+  for (const f of files) {
+    if (/\.zip$/i.test(f.name) || /zip/.test(f.type)) {
+      if (!window.fflate) { toast('לא הצלחתי לפתוח את ה-ZIP. חלצו את התמונות והעלו אותן ישירות.'); continue; }
+      let ents;
+      try { ents = fflate.unzipSync(new Uint8Array(await f.arrayBuffer()), { filter: e => /\.(png|jpe?g|webp)$/i.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name) }); }
+      catch (e) { toast('קובץ ה-ZIP פגום או לא נתמך.'); continue; }
+      Object.keys(ents).sort().forEach(n => {
+        const ext = n.split('.').pop().toLowerCase();
+        items.push({ blob: new Blob([ents[n]], { type: ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg' }), name: n });
+      });
+    } else if (kindOf(f) === 'image') items.push({ blob: f, name: f.name });
+  }
+  if (!items.length) { toast('לא נמצאו תמונות.'); return; }
+  const prog = $('#libProg'), btn = $('#libAdd'); btn.disabled = true;
+  let ok = 0;
+  for (let i = 0; i < items.length; i++) {
+    prog.textContent = `מוסיף ${i + 1} מתוך ${items.length}…`;
+    try {
+      const res = await analyzeSil(items[i].blob);
+      const id = await addMedia(res.blob, 'image', items[i].name);
+      G.library.push({ id, label: libLabel(items[i].name), mode: res.mode, meta: res.meta });
+      ok++;
+      if (ok % 3 === 0) renderLibrary();
+    } catch (e) {}
+  }
+  saveGame(0);
+  btn.disabled = false; prog.textContent = '';
+  renderLibrary(); syncList(); updateUsage();
+  toast(ok === items.length ? `נוספו ${ok} דמויות למאגר.` : `נוספו ${ok} מתוך ${items.length}. חלק מהתמונות לא נפתחו.`);
+}
+async function removeLib(id) {
+  const u = libUser(id);
+  if (u) Object.assign(u.sil, { media: null, mode: null, fit: null, base: null, meta: null, fitSlot: null });
+  G.library = G.library.filter(it => it.id !== id);
+  saveGame(0);
+  await dropMedia(id);
+  renderLibrary(); syncList(); updateUsage();
 }
 
 /* editor: preview of the person inside their silhouette */
@@ -918,7 +1030,7 @@ function patchSil(el, r) {
   chip.hidden = !has; chip.className = 'chip'; chip.textContent = sil.mode === 'face' ? 'רק פנים' : 'דמות מלאה';
   el.querySelector('[data-x="silhint"]').textContent = busy ? 'מכין את התמונה…'
     : !n ? 'כל 14 הצלליות כבר תפוסות, אז האדם הזה לא ייכנס לפוסטר.'
-    : !has ? 'אחרי הסרטון, האדם ממלא את הצללית הזו. מעלים תמונה מ-ChatGPT (הפרומפט למעלה), או תמונה רגילה ואז נכנסות רק הפנים. אפשר גם לגרור לכאן.'
+    : !has ? 'אחרי הסרטון, האדם ממלא את הצללית הזו. בוחרים לו דמות מהמאגר, או מעלים תמונה. תמונה רגילה מכניסה רק את הפנים.'
     : sil.mode === 'face' ? 'גוררים את התמונה כך שהפנים ייכנסו לעיגול המקווקו. את הגודל משנים עם הסליידר או עם גלגלת העכבר.'
     : 'גוררים כדי להזיז. את הגודל משנים עם הסליידר או עם גלגלת העכבר. הראש צריך לשבת על הראש של הצללית.';
   const zr = el.querySelector('[data-x="silzoom"]'); zr.hidden = !has;
@@ -929,8 +1041,8 @@ function patchSil(el, r) {
   if (acts.dataset.sig !== actSig) {
     acts.dataset.sig = actSig;
     acts.innerHTML = busy ? '<i class="spin"></i>' : has
-      ? `<button type="button" class="mt" data-act="sil-pick">החלפה</button><button type="button" class="mt" data-act="sil-auto">התאמה אוטומטית</button><button type="button" class="mt" data-act="sil-mode">${sil.mode === 'face' ? 'להציג דמות מלאה' : 'רק הפנים'}</button><button type="button" class="mt" data-act="sil-del">הסרה</button>`
-      : `<button type="button" class="mt" data-act="sil-pick">העלאת תמונה</button>`;
+      ? `<button type="button" class="mt" data-act="pick-open">בחירה מהמאגר</button><button type="button" class="mt" data-act="sil-pick">העלאת תמונה אחרת</button><button type="button" class="mt" data-act="sil-auto">התאמה אוטומטית</button><button type="button" class="mt" data-act="sil-mode">${sil.mode === 'face' ? 'להציג דמות מלאה' : 'רק הפנים'}</button><button type="button" class="mt" data-act="sil-del">הסרה</button>`
+      : `<button type="button" class="mt" data-act="pick-open">בחירה מהמאגר</button><button type="button" class="mt" data-act="sil-pick">העלאת תמונה</button>`;
   }
   const sig = [sil.media, sil.mode, sil.fit && sil.fit.x.toFixed(1), sil.fit && sil.fit.y.toFixed(1), sil.fit && sil.fit.s.toFixed(4), n, G.settings.poster, has].join('|');
   if (box.dataset.sig !== sig) { box.dataset.sig = sig; drawSilPreview(el, r); }
@@ -1335,6 +1447,7 @@ function bindEditor() {
     else if (f.startsWith('clue')) r.clues[+f.slice(4)].text = e.target.value;
     saveGame();
     patchStatus(card, r); updateSummary();
+    if (f === 'name' && r.sil.media && G.library.some(it => it.id === r.sil.media)) { clearTimeout(renderLibrary._t); renderLibrary._t = setTimeout(renderLibrary, 400); }
   });
   list.addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b) return;
@@ -1348,7 +1461,10 @@ function bindEditor() {
       case 'sil-pick': { const inp = card.querySelector('[data-file="sil"]'); inp.value = ''; inp.click(); break; }
       case 'sil-auto': refit(r); saveGame(0); patchOne(id); break;
       case 'sil-mode': r.sil.mode = r.sil.mode === 'face' ? 'figure' : 'face'; refit(r); saveGame(0); patchOne(id); break;
-      case 'sil-del': { if (!armed(b, 'בטוח?')) return; const old = r.sil.media; Object.assign(r.sil, { media: null, mode: null, fit: null, base: null, meta: null, fitSlot: null }); saveGame(0); patchOne(id); await dropMedia(old); break; }
+      case 'sil-del': { if (!armed(b, 'בטוח?')) return; const old = r.sil.media; Object.assign(r.sil, { media: null, mode: null, fit: null, base: null, meta: null, fitSlot: null }); saveGame(0); patchOne(id); await dropMedia(old); renderLibrary(); break; }
+      case 'pick-open': { const box = card.querySelector('[data-x="sil"]'); const ex = box.querySelector('.picker'); if (ex) { ex.remove(); break; } box.insertAdjacentHTML('beforeend', pickerHTML(r)); break; }
+      case 'pick-close': { const pk = card.querySelector('.picker'); if (pk) pk.remove(); break; }
+      case 'pick-lib': { const pk = card.querySelector('.picker'); if (pk) pk.remove(); await assignLib(r, b.dataset.lib); break; }
       case 'up': move(id, -1); break;
       case 'down': move(id, 1); break;
       case 'del': if (!armed(b, 'למחוק?')) return; deleteRound(id); break;
@@ -1392,6 +1508,12 @@ function bindEditor() {
   pb.addEventListener('dragleave', () => pb.classList.remove('over'));
   pb.addEventListener('drop', e => { e.preventDefault(); pb.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) onPosterFile(f); });
   $('#copyPrompt').addEventListener('click', e => copyText($('#promptText').textContent, e.currentTarget));
+  $('#libAdd').addEventListener('click', () => { const f = $('#libFile'); f.value = ''; f.click(); });
+  $('#libFile').addEventListener('change', e => { const fs = [...(e.target.files || [])]; if (fs.length) importLibrary(fs); });
+  $('#libGrid').addEventListener('click', e => { const b = e.target.closest('[data-lib-del]'); if (!b) return; const u = libUser(b.dataset.libDel); if (!armed(b, 'להסיר?')) return; removeLib(b.dataset.libDel); });
+  const lp = $('#libGrid').closest('.panel');
+  lp.addEventListener('dragover', e => { e.preventDefault(); });
+  lp.addEventListener('drop', e => { e.preventDefault(); const fs = [...((e.dataTransfer && e.dataTransfer.files) || [])]; if (fs.length) importLibrary(fs); });
   list.addEventListener('mouseover', e => { const v = e.target.closest('video[data-hover]'); if (v) v.play().catch(() => {}); });
   list.addEventListener('mouseout', e => { const v = e.target.closest('video[data-hover]'); if (v && !v.contains(e.relatedTarget)) v.pause(); });
 }
@@ -1402,6 +1524,7 @@ async function exportBackup() {
   const btn = $('#exportBtn'); btn.disabled = true;
   try {
     const ids = new Set(); if (G.settings.poster) ids.add(G.settings.poster);
+    G.library.forEach(it => ids.add(it.id));
     G.rounds.forEach(r => { if (r.video) ids.add(r.video); if (r.sil && r.sil.media) ids.add(r.sil.media); r.clues.forEach(c => { if (c.media) ids.add(c.media); }); });
     const index = [], parts = []; let off = 0;
     for (const id of ids) {
@@ -2269,6 +2392,7 @@ async function boot() {
   bindEditor();
   renderSettings();
   renderPosterBox();
+  renderLibrary();
   syncList();
   renderLinks();
   saveState();
