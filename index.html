@@ -261,6 +261,11 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
 .bl.pop b{animation:pop .55s both}
 .bl.fill b{animation:letterIn .38s var(--d,0ms) both;color:var(--hit)}
 .reveal .bl.fill b{color:var(--label)}
+.board.naming .bl.fill b{color:var(--label)}
+.board.naming .b-step{color:var(--label)}
+.q-name{display:grid;justify-items:center;gap:2vh;text-align:center}
+.q-name span{font-size:clamp(18px,3.6vh,46px);opacity:.85}
+.q-name b{font-family:var(--f-display);font-weight:700;font-size:clamp(56px,16vh,210px);line-height:.9;color:var(--label);text-wrap:balance;animation:slamBig .5s cubic-bezier(.25,1.5,.45,1) both}
 
 /* verdicts */
 .verdict{position:absolute;inset:-2vh -4vw;z-index:4;display:grid;place-items:center;align-content:center;gap:2vh;text-align:center;background:color-mix(in srgb,var(--tape) 78%,transparent);border-radius:2vh;overflow:hidden}
@@ -1833,6 +1838,7 @@ function startShow(mode) {
 function exitShow() {
   SH.on = false; clearTimers(); clearTimeout(SH.vTimer); closeZoom(); closeTyper();
   if (SH.verdict) afterVerdict(true);
+  SH.naming = false;
   pauseAll();
   stage.hidden = true; document.body.classList.remove('showing');
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
@@ -1980,7 +1986,7 @@ function revealHTML() {
   return `<section class="reveal">
     <div class="rv-top">
       <div class="rv-kicker">בקלטת מס' ${SH.ri + 1}:</div>
-      ${blanksHTML(r.name, new Set(L.letters[r.id] || []), { fill: true })}
+      ${blanksHTML(r.name, new Set(L.letters[r.id] || []), { fill: true, instant: true })}
       <div class="rv-meta">${r.caption ? `<div class="rv-cap">${esc(r.caption)}</div>` : ''}<div class="stamp${res && res.ok ? '' : ' bad'}" id="stamp">${esc(resText(res))}</div></div>
       ${frLine}
     </div>
@@ -2128,9 +2134,10 @@ function updateBoard(dir, fresh) {
       else if (j >= s) v.pause();
     }
   });
-  $('#blanksWrap').innerHTML = blanksHTML(r.name, new Set(L.letters[r.id] || []), { pop: SH.popLetter, fill: !!(res && res.ok), instant: dir < 0 });
+  $('#blanksWrap').innerHTML = blanksHTML(r.name, new Set(L.letters[r.id] || []), { pop: SH.popLetter, fill: !!(res && res.ok) || SH.naming, instant: dir < 0 && !SH.naming });
+  $('.board', scr).classList.toggle('naming', !!SH.naming);
   SH.popLetter = -1;
-  $('#bStep').textContent = n === 0 ? 'רק האותיות' : s === 0 ? 'מי זה?' : `רמז ${s} מתוך ${n}`;
+  $('#bStep').textContent = SH.naming ? 'זה היה:' : n === 0 ? 'רק האותיות' : s === 0 ? 'מי זה?' : `רמז ${s} מתוך ${n}`;
   updateCount();
 }
 function updateCount() {
@@ -2152,6 +2159,7 @@ function playClueVideo(v, withSound) {
 /* verdicts */
 function hideVerdictLayer() { const v = $('#verdict'); if (v) { v.hidden = true; v.innerHTML = ''; } }
 function showVerdict(ok, text, sub) {
+  SH.naming = false;
   SH.verdict = { ok, text, sub };
   const el = $('#verdict'); if (!el) return;
   el.className = 'verdict ' + (ok ? 'win' : 'fish');
@@ -2174,11 +2182,28 @@ function afterVerdict(silent) {
   hideVerdictLayer();
   if (silent) { publishState(); return; }
   const r = curRound(), res = L.results[r.id];
-  if (isQ(r)) { if (res) finale(); else commit(0); return; }
-  if ((res && res.ok) || SH.stage >= r.clues.length) finale();
+  if (isQ(r)) { if (res && res.ok) finale(); else if (res) nameReveal(); else commit(0); return; }
+  if (res && res.ok) finale();
+  else if (SH.stage >= r.clues.length) nameReveal();
   else { SH.stage++; commit(1); }
 }
+/* after the last miss the name fills in on the board, so everyone sees who it was before moving on */
+function nameReveal() {
+  const r = curRound();
+  if (!L.results[r.id]) L.results[r.id] = { ok: false, guess: '' };
+  L.locked[r.id] = true;
+  SH.naming = true;
+  saveLive(); publishState();
+  hideVerdictLayer();
+  updateBoard(0);
+  setOSD('ANSWER', 2000);
+  tone(392, 0, 0.5, 'triangle', 0.16); tone(523, 0.18, 0.7, 'triangle', 0.14);
+  setCue();
+  const letters = [...r.name].filter(K.isLetter).length;
+  later(() => { if (SH.naming) finale(); }, (reduced ? 0 : letters * 70) + 2600);
+}
 function finale() {
+  SH.naming = false;
   const r = curRound();
   if (!L.results[r.id]) L.results[r.id] = { ok: false, guess: '' };
   L.locked[r.id] = true;
@@ -2229,7 +2254,9 @@ function updateQ21() {
     return `<i class="${c || ''}${now ? ' now' : ''}">${c === 'yes' ? '✓' : c ? '✗' : i + 1}</i>`;
   }).join('');
   const main = $('#qMain'), last = Q.items[Q.items.length - 1];
-  if (Q.pending) {
+  if (SH.naming) {
+    main.innerHTML = `<div class="q-name"><span>זה היה:</span><b>${esc(r.name)}</b></div>`;
+  } else if (Q.pending) {
     const t = Q.pending.text;
     main.innerHTML = `<div class="qnote"><span class="qn">${Q.pending.kind === 'g' ? 'הניחוש של החתן' : `שאלה ${used + 1}`}</span><p class="qtext${t.length > 38 ? ' long' : ''}">${esc(t)}</p><span class="qwait">${Q.pending.kind === 'g' ? 'G = ✓ · D = ✗' : 'Y = כן · N = לא'}</span></div>`;
   } else if (last && last.kind === 'q') {
@@ -2426,6 +2453,7 @@ function setCue() {
   if (SH.view === 'cover') t = '→ למסך ההצטרפות';
   else if (SH.view === 'fill') t = SH.ri === SH.rounds.length - 1 ? '→ לסיכום' : '→ לקלטת הבאה';
   else if (SH.view === 'intro') t = '→ לקלטת הראשונה';
+  else if (SH.view === 'board' && SH.naming) t = '→ להמשיך';
   else if (SH.view === 'board' && isQ(r)) {
     const Q = qs(r);
     t = SH.verdict ? '→ להמשיך' : Q.pending ? (Q.pending.kind === 'g' ? 'G נכון · D איזה דג · Z ביטול' : 'Y כן · N לא · Z ביטול') : 'T הקלדה במחשב · → פעמיים לסיום הסבב';
@@ -2443,6 +2471,7 @@ function setCue() {
 /* navigation */
 function next() {
   if (SH.view === 'board' && SH.verdict) { afterVerdict(); return; }
+  if (SH.view === 'board' && SH.naming) { clearTimers(); finale(); return; }
   const r = curRound();
   if (SH.view === 'cover') { pushHist(); SH.view = 'intro'; commit(1); return; }
   if (SH.view === 'intro') { pushHist(); SH.view = 'board'; SH.stage = 0; commit(1); return; }
@@ -2473,6 +2502,7 @@ function next() {
   }
 }
 function prev() {
+  if (SH.naming) { SH.naming = false; clearTimers(); }
   if (SH.verdict) { clearTimeout(SH.vTimer); SH.verdict = null; hideVerdictLayer(); }
   const h = SH.hist.pop();
   if (!h) return;
