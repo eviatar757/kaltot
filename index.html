@@ -433,6 +433,8 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
 .aud-start input{width:64px;text-align:center;direction:ltr;font-variant-numeric:tabular-nums;padding:5px 6px}
 .aud-actions{display:flex;gap:6px}
 .music-fld{margin-top:18px}
+.fx-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin-top:14px}
+@media (max-width:760px){.fx-grid{grid-template-columns:1fr}}
 /* character library */
 .lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px;margin:4px 0 14px}
 .lib-item{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--sunk);overflow:hidden;display:grid;grid-template-rows:auto auto;min-width:0}
@@ -523,6 +525,10 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
       </div>
       <div class="fld music-fld"><span>מוזיקת רקע <em>· מתנגנת בלופ לאורך כל המשחק, ונעלמת בספירה לאחור ובזמן הסרטונים</em></span>
         <div class="aud" id="musicBox" data-owner="bg"></div>
+      </div>
+      <div class="fx-grid">
+        <div class="fld"><span>צליל הצלחה <em>· מתנגן מעל המוזיקה בכל «כל הכבוד!»</em></span><div class="aud" id="winBox" data-owner="win"></div></div>
+        <div class="fld"><span>צליל כישלון <em>· מתנגן מעל המוזיקה בכל «איזה דג!»</em></span><div class="aud" id="failBox" data-owner="fail"></div></div>
       </div>
       <input type="file" id="audFile" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden>
     </section>
@@ -721,7 +727,7 @@ async function addMedia(blob, kind, name, extra) {
   askPersist();
   return id;
 }
-function isRef(id) { return G.settings.poster === id || G.settings.music.media === id || G.rounds.some(r => r.song && r.song.media === id) || G.library.some(it => it.id === id) || G.rounds.some(r => r.video === id || (r.sil && r.sil.media === id) || r.clues.some(c => c.media === id)); }
+function isRef(id) { return G.settings.poster === id || G.settings.music.media === id || G.settings.sfxWin.media === id || G.settings.sfxFail.media === id || G.rounds.some(r => r.song && r.song.media === id) || G.library.some(it => it.id === id) || G.rounds.some(r => r.video === id || (r.sil && r.sil.media === id) || r.clues.some(c => c.media === id)); }
 async function dropMedia(id) {
   if (!id || isRef(id)) return;
   const m = M.get(id);
@@ -765,6 +771,8 @@ function normGame(g) {
   if (!g.settings.groomKey) g.settings.groomKey = K.rid(8);
   if (!g.settings.poster) g.settings.poster = null;
   g.settings.music = Object.assign({ media: null, vol: 0.5 }, g.settings.music || {});
+  g.settings.sfxWin = Object.assign({ media: null, vol: 0.8 }, g.settings.sfxWin || {});
+  g.settings.sfxFail = Object.assign({ media: null, vol: 0.8 }, g.settings.sfxFail || {});
   g.library = Array.isArray(g.library) ? g.library.filter(it => it && it.id) : [];
   g.rounds = (Array.isArray(g.rounds) ? g.rounds : []).map(r => {
     const n = newRound(r);
@@ -1206,8 +1214,15 @@ function bindSilPointer(list) {
 /* ---------- music: a background tune for the whole game, and a quiet song under each greeting video ---------- */
 const fmtT = sec => { sec = Math.max(0, Math.round(sec || 0)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
 const parseT = v => { v = String(v || '').trim(); if (!v) return 0; const m = v.match(/^(\d+):(\d{1,2})$/); return m ? +m[1] * 60 + +m[2] : Math.max(0, +v || 0); };
-function audObj(owner) { if (owner === 'bg') return G.settings.music; const r = findRound(owner); return r && r.song; }
-function audBox(owner) { return owner === 'bg' ? $('#musicBox') : (S.cards.get(owner) ? S.cards.get(owner).querySelector('[data-x="song"]') : null); }
+const AUD_GLOBAL = { bg: ['music', '#musicBox'], win: ['sfxWin', '#winBox'], fail: ['sfxFail', '#failBox'] };
+function audObj(owner) { if (AUD_GLOBAL[owner]) return G.settings[AUD_GLOBAL[owner][0]]; const r = findRound(owner); return r && r.song; }
+function audBox(owner) { return AUD_GLOBAL[owner] ? $(AUD_GLOBAL[owner][1]) : (S.cards.get(owner) ? S.cards.get(owner).querySelector('[data-x="song"]') : null); }
+const AUD_TEXT = {
+  bg: ['העלאת מנגינת רקע', 'MP3, M4A או WAV. אפשר גם לגרור לכאן.', ''],
+  win: ['העלאת צליל הצלחה', 'בלי קובץ מתנגן צליל קצר מובנה.', 'הצלחה: '],
+  fail: ['העלאת צליל כישלון', 'בלי קובץ מתנגן צליל קצר מובנה.', 'כישלון: '],
+  song: ['שיר שיתנגן בשקט מתחת לסרטון', 'לא חובה. MP3, M4A או WAV. אפשר גם לגרור לכאן.', 'שיר לסרטון: ']
+};
 function patchAud(box, owner) {
   if (!box) return;
   const a = audObj(owner), m = a && a.media && M.get(a.media), busy = S.busy.has('aud:' + owner);
@@ -1215,17 +1230,17 @@ function patchAud(box, owner) {
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   box.classList.toggle('has', !!m && !busy);
-  const bg = owner === 'bg';
+  const kind = AUD_GLOBAL[owner] ? owner : 'song', T = AUD_TEXT[kind], song = kind === 'song';
   if (busy) { box.innerHTML = '<div class="busy" style="display:flex;flex-direction:row"><i class="spin"></i>שומר את הקובץ…</div>'; return; }
   if (!m) {
-    box.innerHTML = `<button type="button" class="media-add" data-au="pick">${ICON.music}<span>${bg ? 'העלאת מנגינת רקע' : 'שיר שיתנגן בשקט מתחת לסרטון'}</span><small>${bg ? 'MP3, M4A או WAV. אפשר גם לגרור לכאן.' : 'לא חובה. MP3, M4A או WAV. אפשר גם לגרור לכאן.'}</small></button>`;
+    box.innerHTML = `<button type="button" class="media-add" data-au="pick">${ICON.music}<span>${T[0]}</span><small>${T[1]}</small></button>`;
     return;
   }
   box.innerHTML = `<div class="aud-row">
     <button type="button" class="aud-play" data-au="preview" aria-label="השמעה">${MUS.prevOwner === owner ? '■' : TRI}</button>
-    <div class="aud-meta"><b title="${esc(m.name)}">${bg ? '' : 'שיר לסרטון: '}${esc(m.name || 'מנגינה')}</b><span>${m.dur ? fmtT(m.dur) : ''}</span></div>
+    <div class="aud-meta"><b title="${esc(m.name)}">${T[2]}${esc(m.name || 'מנגינה')}</b><span>${m.dur ? fmtT(m.dur) : ''}</span></div>
     <label class="aud-vol"><span>עוצמה</span><input type="range" min="0" max="100" step="1" value="${Math.round((a.vol != null ? a.vol : 0.5) * 100)}" data-au="vol" id="vol-${owner}"></label>
-    ${bg ? '' : `<label class="aud-start"><span>מתחיל מ-</span><input type="text" inputmode="numeric" value="${fmtT(a.start)}" data-au="start" id="start-${owner}" placeholder="0:00"></label>`}
+    ${!song ? '' : `<label class="aud-start"><span>מתחיל מ-</span><input type="text" inputmode="numeric" value="${fmtT(a.start)}" data-au="start" id="start-${owner}" placeholder="0:00"></label>`}
     <div class="aud-actions"><button type="button" class="mt" data-au="pick">החלפה</button><button type="button" class="mt" data-au="del">הסרה</button></div></div>`;
 }
 function probeAudio(file) {
@@ -1253,11 +1268,11 @@ async function onAudFile(owner, file) {
     const old = a.media;
     if (MUS.prevOwner === owner) stopPreview();
     a.media = mid;
-    if (owner !== 'bg') a.start = 0;
+    if (!AUD_GLOBAL[owner]) a.start = 0;
     saveGame(0);
     await dropMedia(old);
     updateUsage();
-    toast(owner === 'bg' ? 'מנגינת הרקע נשמרה.' : 'השיר נשמר. הוא יתנגן בשקט מתחת לסרטון.');
+    toast({ bg: 'מנגינת הרקע נשמרה.', win: 'צליל ההצלחה נשמר. הוא יתנגן בכל «כל הכבוד!».', fail: 'צליל הכישלון נשמר. הוא יתנגן בכל «איזה דג!».' }[owner] || 'השיר נשמר. הוא יתנגן בשקט מתחת לסרטון.');
   } catch (e) { toast(errText(e)); }
   finally { S.busy.delete(key); patchAud(audBox(owner), owner); saveState(); }
 }
@@ -1268,7 +1283,7 @@ function togglePreview(owner) {
   stopPreview();
   const au = new Audio(m.url);
   au.volume = Math.max(0.05, a.vol != null ? a.vol : 0.5);
-  const seek = () => { try { au.currentTime = owner === 'bg' ? 0 : (a.start || 0); } catch (e) {} };
+  const seek = () => { try { au.currentTime = AUD_GLOBAL[owner] ? 0 : (a.start || 0); } catch (e) {} };
   if (au.readyState >= 1) seek(); else au.addEventListener('loadedmetadata', seek, { once: true });
   au.onended = stopPreview;
   au.play().catch(() => { toast('לא הצלחתי להשמיע את הקובץ.'); stopPreview(); });
@@ -1307,10 +1322,12 @@ function bindAudio() {
     a.start = parseT(e.target.value); e.target.value = fmtT(a.start); saveGame(0);
   });
   $('#audFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) onAudFile(e.target.dataset.owner, f); });
-  const mb = $('#musicBox');
-  mb.addEventListener('dragover', e => { e.preventDefault(); mb.classList.add('over'); });
-  mb.addEventListener('dragleave', () => mb.classList.remove('over'));
-  mb.addEventListener('drop', e => { e.preventDefault(); mb.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) onAudFile('bg', f); });
+  Object.keys(AUD_GLOBAL).forEach(owner => {
+    const mb = audBox(owner);
+    mb.addEventListener('dragover', e => { e.preventDefault(); mb.classList.add('over'); });
+    mb.addEventListener('dragleave', () => mb.classList.remove('over'));
+    mb.addEventListener('drop', e => { e.preventDefault(); mb.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) onAudFile(owner, f); });
+  });
 }
 
 /* ---------- links & QR ---------- */
@@ -1734,7 +1751,7 @@ async function exportBackup() {
   try {
     const ids = new Set(); if (G.settings.poster) ids.add(G.settings.poster);
     G.library.forEach(it => ids.add(it.id));
-    if (G.settings.music.media) ids.add(G.settings.music.media);
+    [G.settings.music, G.settings.sfxWin, G.settings.sfxFail].forEach(a => { if (a.media) ids.add(a.media); });
     G.rounds.forEach(r => { if (r.song && r.song.media) ids.add(r.song.media); });
     G.rounds.forEach(r => { if (r.video) ids.add(r.video); if (r.sil && r.sil.media) ids.add(r.sil.media); r.clues.forEach(c => { if (c.media) ids.add(c.media); }); });
     const index = [], parts = []; let off = 0;
@@ -1985,7 +2002,7 @@ function exitShow() {
   if (SH.verdict) afterVerdict(true);
   SH.naming = false;
   pauseAll();
-  updateMusic(); songPause(300);
+  stopFx(300); updateMusic(); songPause(300);
   stage.hidden = true; document.body.classList.remove('showing');
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
   clearInterval(SH.clock);
@@ -2013,7 +2030,25 @@ function pauseAll() {
 }
 
 /* music during the show */
-const MUS = { on: true, bg: null, bgId: '', song: null, songKey: '', prev: null, prevOwner: '' };
+const MUS = { on: true, bg: null, bgId: '', song: null, songKey: '', prev: null, prevOwner: '', fx: null };
+/* success / failure sound: the uploaded file if there is one, otherwise the built-in tones */
+function playFx(ok) {
+  const a = ok ? G.settings.sfxWin : G.settings.sfxFail, m = a && a.media && M.get(a.media);
+  if (!m) { ok ? sfx.win() : sfx.fish(); return; }
+  stopFx(0);
+  if (!SH.sound) return;
+  const au = new Audio(m.url);
+  au.volume = a.vol != null ? a.vol : 0.8;
+  au.onended = () => { if (MUS.fx === au) { MUS.fx = null; updateMusic(); } };
+  MUS.fx = au;
+  au.play().catch(() => { if (MUS.fx === au) MUS.fx = null; });
+  updateMusic();
+}
+function stopFx(ms) {
+  const f = MUS.fx; if (!f) return;
+  MUS.fx = null;
+  fadeTo(f, 0, ms, () => f.pause());
+}
 const fades = new WeakMap();
 function fadeTo(a, target, ms, done) {
   if (!a) return;
@@ -2049,6 +2084,7 @@ function updateMusic() {
   if (SH.on && MUS.on && SH.view !== 'reveal' && SH.view !== 'countdown') {
     target = G.settings.music.vol != null ? G.settings.music.vol : 0.5;
     if (clueSound()) target *= 0.2;
+    else if (MUS.fx) target *= 0.35;
   }
   if (target > 0) { if (a.paused) a.play().catch(() => {}); fadeTo(a, target, 1200); }
   else fadeTo(a, 0, SH.view === 'countdown' ? 1400 : 700, () => a.pause());
@@ -2337,6 +2373,7 @@ function render(dir) {
   setCue();
   updateMusic();
   if (SH.view !== 'reveal') songPause(700);
+  if (SH.view === 'countdown' || SH.view === 'reveal') stopFx(600);
 }
 function updateBoard(dir, fresh) {
   if (isQ(curRound())) { updateQ21(); return; }
@@ -2388,7 +2425,8 @@ function showVerdict(ok, text, sub) {
     ? `<p class="vd-word">כל הכבוד!</p>${text ? `<p class="vd-guess">«${esc(text)}»</p>` : ''}${sub ? `<p class="vd-sub">${esc(sub)}</p>` : ''}`
     : `${reduced ? '' : `<div class="fishy">${FISH}</div><div class="fishy two">${FISH}</div>`}<p class="vd-word">איזה דג!</p>${text ? `<p class="vd-guess"><s>«${esc(text)}»</s></p>` : ''}${sub ? `<p class="vd-sub">${esc(sub)}</p>` : ''}`;
   $$('video[data-cv]', scr).forEach(v => { v.muted = true; });
-  if (ok) { sfx.win(); confetti(); setOSD('★ HIT', 1600); } else { sfx.fish(); setOSD('MISS', 1600); }
+  playFx(ok);
+  if (ok) { confetti(); setOSD('★ HIT', 1600); } else setOSD('MISS', 1600);
   updateBoard(0);
   clearTimeout(SH.vTimer);
   SH.vTimer = setTimeout(() => afterVerdict(), ok ? 3600 : 3000);
@@ -2417,7 +2455,7 @@ function nameReveal() {
   hideVerdictLayer();
   updateBoard(0);
   setOSD('ANSWER', 2000);
-  tone(392, 0, 0.5, 'triangle', 0.16); tone(523, 0.18, 0.7, 'triangle', 0.14);
+  if (!MUS.fx) { tone(392, 0, 0.5, 'triangle', 0.16); tone(523, 0.18, 0.7, 'triangle', 0.14); }
   setCue();
   const letters = [...r.name].filter(K.isLetter).length;
   later(() => { if (SH.naming) finale(); }, (reduced ? 0 : letters * 70) + 2600);
@@ -2857,7 +2895,7 @@ async function boot() {
   bindEditor();
   bindAudio();
   renderSettings();
-  patchAud($('#musicBox'), 'bg');
+  Object.keys(AUD_GLOBAL).forEach(o => patchAud(audBox(o), o));
   renderPosterBox();
   renderLibrary();
   syncList();
