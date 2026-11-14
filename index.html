@@ -771,8 +771,8 @@ function normGame(g) {
   if (!g.settings.groomKey) g.settings.groomKey = K.rid(8);
   if (!g.settings.poster) g.settings.poster = null;
   g.settings.music = Object.assign({ media: null, vol: 0.5 }, g.settings.music || {});
-  g.settings.sfxWin = Object.assign({ media: null, vol: 0.8 }, g.settings.sfxWin || {});
-  g.settings.sfxFail = Object.assign({ media: null, vol: 0.8 }, g.settings.sfxFail || {});
+  g.settings.sfxWin = Object.assign({ media: null, vol: 0.8, start: 0, end: 0 }, g.settings.sfxWin || {});
+  g.settings.sfxFail = Object.assign({ media: null, vol: 0.8, start: 0, end: 0 }, g.settings.sfxFail || {});
   g.library = Array.isArray(g.library) ? g.library.filter(it => it && it.id) : [];
   g.rounds = (Array.isArray(g.rounds) ? g.rounds : []).map(r => {
     const n = newRound(r);
@@ -1212,8 +1212,16 @@ function bindSilPointer(list) {
 }
 
 /* ---------- music: a background tune for the whole game, and a quiet song under each greeting video ---------- */
-const fmtT = sec => { sec = Math.max(0, Math.round(sec || 0)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
-const parseT = v => { v = String(v || '').trim(); if (!v) return 0; const m = v.match(/^(\d+):(\d{1,2})$/); return m ? +m[1] * 60 + +m[2] : Math.max(0, +v || 0); };
+const fmtT = sec => {
+  sec = Math.max(0, Math.round((sec || 0) * 10) / 10);
+  const mm = Math.floor(sec / 60), ss = sec - mm * 60, whole = Math.floor(ss + 1e-9), tenth = Math.round((ss - whole) * 10);
+  return mm + ':' + String(whole).padStart(2, '0') + (tenth ? '.' + tenth : '');
+};
+const parseT = v => {
+  v = String(v || '').trim().replace(',', '.'); if (!v) return 0;
+  const m = v.match(/^(\d+):(\d{1,2}(?:\.\d+)?)$/);
+  return Math.round((m ? +m[1] * 60 + +m[2] : Math.max(0, +v || 0)) * 10) / 10;
+};
 const AUD_GLOBAL = { bg: ['music', '#musicBox'], win: ['sfxWin', '#winBox'], fail: ['sfxFail', '#failBox'] };
 function audObj(owner) { if (AUD_GLOBAL[owner]) return G.settings[AUD_GLOBAL[owner][0]]; const r = findRound(owner); return r && r.song; }
 function audBox(owner) { return AUD_GLOBAL[owner] ? $(AUD_GLOBAL[owner][1]) : (S.cards.get(owner) ? S.cards.get(owner).querySelector('[data-x="song"]') : null); }
@@ -1240,7 +1248,8 @@ function patchAud(box, owner) {
     <button type="button" class="aud-play" data-au="preview" aria-label="השמעה">${MUS.prevOwner === owner ? '■' : TRI}</button>
     <div class="aud-meta"><b title="${esc(m.name)}">${T[2]}${esc(m.name || 'מנגינה')}</b><span>${m.dur ? fmtT(m.dur) : ''}</span></div>
     <label class="aud-vol"><span>עוצמה</span><input type="range" min="0" max="100" step="1" value="${Math.round((a.vol != null ? a.vol : 0.5) * 100)}" data-au="vol" id="vol-${owner}"></label>
-    ${!song ? '' : `<label class="aud-start"><span>מתחיל מ-</span><input type="text" inputmode="numeric" value="${fmtT(a.start)}" data-au="start" id="start-${owner}" placeholder="0:00"></label>`}
+    ${song ? `<label class="aud-start"><span>מתחיל מ-</span><input type="text" inputmode="decimal" value="${fmtT(a.start)}" data-au="start" id="start-${owner}" placeholder="0:00"></label>` : ''}
+    ${kind === 'win' || kind === 'fail' ? `<label class="aud-start"><span>מ-</span><input type="text" inputmode="decimal" value="${fmtT(a.start)}" data-au="start" id="start-${owner}" placeholder="0:00"></label><label class="aud-start"><span>עד</span><input type="text" inputmode="decimal" value="${a.end ? fmtT(a.end) : ''}" data-au="end" id="end-${owner}" placeholder="הסוף"></label>` : ''}
     <div class="aud-actions"><button type="button" class="mt" data-au="pick">החלפה</button><button type="button" class="mt" data-au="del">הסרה</button></div></div>`;
 }
 function probeAudio(file) {
@@ -1283,9 +1292,10 @@ function togglePreview(owner) {
   stopPreview();
   const au = new Audio(m.url);
   au.volume = Math.max(0.05, a.vol != null ? a.vol : 0.5);
-  const seek = () => { try { au.currentTime = AUD_GLOBAL[owner] ? 0 : (a.start || 0); } catch (e) {} };
+  const seek = () => { try { au.currentTime = owner === 'bg' ? 0 : (a.start || 0); } catch (e) {} };
   if (au.readyState >= 1) seek(); else au.addEventListener('loadedmetadata', seek, { once: true });
   au.onended = stopPreview;
+  if (a.end && a.end > (a.start || 0)) au.addEventListener('timeupdate', () => { if (MUS.prev === au && au.currentTime >= a.end) stopPreview(); });
   au.play().catch(() => { toast('לא הצלחתי להשמיע את הקובץ.'); stopPreview(); });
   MUS.prev = au; MUS.prevOwner = owner;
   const box = audBox(owner), b = box && box.querySelector('[data-au="preview"]');
@@ -1317,9 +1327,20 @@ function bindAudio() {
     saveGame();
   });
   document.addEventListener('change', e => {
-    if (e.target.dataset.au !== 'start') return;
+    const which = e.target.dataset.au;
+    if (which === 'end') {
+      const owner = e.target.closest('.aud').dataset.owner, a = audObj(owner); if (!a) return;
+      a.end = parseT(e.target.value);
+      if (a.end && a.end <= (a.start || 0)) { a.end = 0; toast('«עד» צריך להיות אחרי «מ-», אז הצליל יתנגן עד הסוף.'); }
+      e.target.value = a.end ? fmtT(a.end) : ''; saveGame(0); return;
+    }
+    if (which !== 'start') return;
     const owner = e.target.closest('.aud').dataset.owner, a = audObj(owner); if (!a) return;
-    a.start = parseT(e.target.value); e.target.value = fmtT(a.start); saveGame(0);
+    a.start = parseT(e.target.value);
+    const m = a.media && M.get(a.media);
+    if (m && m.dur && a.start >= m.dur) { a.start = 0; toast('הנקודה הזו אחרי סוף הקובץ, אז הוא יתחיל מההתחלה.'); }
+    if (a.end && a.end <= a.start) { a.end = 0; const ef = e.target.closest('.aud').querySelector('[data-au="end"]'); if (ef) ef.value = ''; }
+    e.target.value = fmtT(a.start); saveGame(0);
   });
   $('#audFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) onAudFile(e.target.dataset.owner, f); });
   Object.keys(AUD_GLOBAL).forEach(owner => {
@@ -2039,7 +2060,10 @@ function playFx(ok) {
   if (!SH.sound) return;
   const au = new Audio(m.url);
   au.volume = a.vol != null ? a.vol : 0.8;
+  const start = a.start || 0, end = a.end && a.end > start ? a.end : 0;
+  if (start) { const seek = () => { try { au.currentTime = start; } catch (e) {} }; if (au.readyState >= 1) seek(); else au.addEventListener('loadedmetadata', seek, { once: true }); }
   au.onended = () => { if (MUS.fx === au) { MUS.fx = null; updateMusic(); } };
+  if (end) au.addEventListener('timeupdate', () => { if (MUS.fx === au && au.currentTime >= end - 0.25) { stopFx(250); updateMusic(); } });
   MUS.fx = au;
   au.play().catch(() => { if (MUS.fx === au) MUS.fx = null; });
   updateMusic();
