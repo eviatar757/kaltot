@@ -418,6 +418,21 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
 .seg input:checked+span{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 20%,transparent)}
 .seg input:focus-visible+span{outline:2px solid var(--accent)}
 .q21-note{margin:0;font-size:13.5px;color:var(--muted);border:1.5px dashed var(--line);border-radius:12px;padding:12px 14px}
+/* music */
+.aud{border:1.5px dashed var(--line);border-radius:12px;background:var(--sunk);padding:10px 12px;min-height:64px;display:grid;align-items:center}
+.aud.has{border-style:solid}
+.aud.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--sunk))}
+.aud .media-add{height:auto;padding:6px}
+.aud-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.aud-play{width:40px;height:40px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:15px;cursor:pointer;flex:none;display:grid;place-items:center}
+.aud-meta{display:grid;gap:1px;min-width:0;flex:1 1 160px}
+.aud-meta b{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aud-meta span{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.aud-vol,.aud-start{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.aud-vol input{width:120px;accent-color:var(--accent);direction:ltr}
+.aud-start input{width:64px;text-align:center;direction:ltr;font-variant-numeric:tabular-nums;padding:5px 6px}
+.aud-actions{display:flex;gap:6px}
+.music-fld{margin-top:18px}
 /* character library */
 .lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px;margin:4px 0 14px}
 .lib-item{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--sunk);overflow:hidden;display:grid;grid-template-rows:auto auto;min-width:0}
@@ -506,6 +521,10 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
           <div class="ph-actions"><button type="button" class="btn btn-sm" id="copyPrompt">העתקת הפרומפט</button></div>
         </div>
       </div>
+      <div class="fld music-fld"><span>מוזיקת רקע <em>· מתנגנת בלופ לאורך כל המשחק, ונעלמת בספירה לאחור ובזמן הסרטונים</em></span>
+        <div class="aud" id="musicBox" data-owner="bg"></div>
+      </div>
+      <input type="file" id="audFile" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden>
     </section>
 
     <section class="panel" aria-labelledby="libH">
@@ -579,6 +598,7 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
         <li><kbd>R</kbd> הסרטון מההתחלה</li>
         <li><kbd>F</kbd> מסך מלא</li>
         <li><kbd>M</kbd> השתקת צלילי המשחק</li>
+        <li><kbd>B</kbd> הפעלה וכיבוי של המוזיקה</li>
       </ul>
       <ul class="tips">
         <li>הניחוש של החתן נבדק אוטומטית: שם מלא, שם פרטי או שם משפחה, עם טעות הקלדה קטנה. כינויים ואיותים נוספים מוסיפים בכרטיס של כל אדם.</li>
@@ -620,6 +640,7 @@ kbd{font-family:var(--f-osd);font-size:17px;line-height:1.25;background:var(--su
     <button type="button" data-h="right" class="hb-hit">&#x2713; צדק <kbd>G</kbd></button>
     <button type="button" data-h="wrong" class="hb-fish">איזה דג <kbd>D</kbd></button>
     <button type="button" data-h="qr">QR <kbd>Q</kbd></button>
+    <button type="button" data-h="music" id="hbMusic">מוזיקה <kbd>B</kbd></button>
     <button type="button" data-h="fs" id="hbFs">מסך מלא <kbd>F</kbd></button>
   </nav>
 </div>
@@ -688,18 +709,19 @@ async function loadMedia() {
   for (const k of keys) {
     try {
       const rec = await IDB.get('media', k);
-      if (rec && rec.blob) M.set(k, { url: URL.createObjectURL(rec.blob), kind: rec.kind, mime: rec.mime, name: rec.name, size: rec.blob.size });
+      if (rec && rec.blob) M.set(k, { url: URL.createObjectURL(rec.blob), kind: rec.kind, mime: rec.mime, name: rec.name, size: rec.blob.size, dur: rec.dur || 0 });
     } catch (e) {}
   }
 }
-async function addMedia(blob, kind, name) {
+async function addMedia(blob, kind, name, extra) {
   const id = 'm' + Date.now().toString(36) + K.rid(5);
-  await IDB.put('media', id, { blob, kind, mime: blob.type || '', name: name || '' });
-  M.set(id, { url: URL.createObjectURL(blob), kind, mime: blob.type || '', name: name || '', size: blob.size });
+  const dur = (extra && extra.dur) || 0;
+  await IDB.put('media', id, { blob, kind, mime: blob.type || '', name: name || '', dur });
+  M.set(id, { url: URL.createObjectURL(blob), kind, mime: blob.type || '', name: name || '', size: blob.size, dur });
   askPersist();
   return id;
 }
-function isRef(id) { return G.settings.poster === id || G.library.some(it => it.id === id) || G.rounds.some(r => r.video === id || (r.sil && r.sil.media === id) || r.clues.some(c => c.media === id)); }
+function isRef(id) { return G.settings.poster === id || G.settings.music.media === id || G.rounds.some(r => r.song && r.song.media === id) || G.library.some(it => it.id === id) || G.rounds.some(r => r.video === id || (r.sil && r.sil.media === id) || r.clues.some(c => c.media === id)); }
 async function dropMedia(id) {
   if (!id || isRef(id)) return;
   const m = M.get(id);
@@ -724,6 +746,7 @@ const SIL_DEFAULT = () => ({ media: null, mode: null, fit: null, base: null, slo
 function newRound(over) {
   const r = Object.assign({ id: 'r' + Date.now().toString(36) + K.rid(4), mode: 'clues', name: '', aliases: '', caption: '', clues: [{ media: null, text: '' }, { media: null, text: '' }, { media: null, text: '' }], video: null, example: false }, over || {});
   r.sil = Object.assign(SIL_DEFAULT(), (over && over.sil) || {});
+  r.song = Object.assign({ media: null, vol: 0.25, start: 0 }, (over && over.song) || {});
   return r;
 }
 function defaultGame() {
@@ -741,6 +764,7 @@ function normGame(g) {
   if (!g.settings.code) g.settings.code = K.rid(6);
   if (!g.settings.groomKey) g.settings.groomKey = K.rid(8);
   if (!g.settings.poster) g.settings.poster = null;
+  g.settings.music = Object.assign({ media: null, vol: 0.5 }, g.settings.music || {});
   g.library = Array.isArray(g.library) ? g.library.filter(it => it && it.id) : [];
   g.rounds = (Array.isArray(g.rounds) ? g.rounds : []).map(r => {
     const n = newRound(r);
@@ -1179,6 +1203,116 @@ function bindSilPointer(list) {
   }, { passive: false });
 }
 
+/* ---------- music: a background tune for the whole game, and a quiet song under each greeting video ---------- */
+const fmtT = sec => { sec = Math.max(0, Math.round(sec || 0)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
+const parseT = v => { v = String(v || '').trim(); if (!v) return 0; const m = v.match(/^(\d+):(\d{1,2})$/); return m ? +m[1] * 60 + +m[2] : Math.max(0, +v || 0); };
+function audObj(owner) { if (owner === 'bg') return G.settings.music; const r = findRound(owner); return r && r.song; }
+function audBox(owner) { return owner === 'bg' ? $('#musicBox') : (S.cards.get(owner) ? S.cards.get(owner).querySelector('[data-x="song"]') : null); }
+function patchAud(box, owner) {
+  if (!box) return;
+  const a = audObj(owner), m = a && a.media && M.get(a.media), busy = S.busy.has('aud:' + owner);
+  const sig = (a && a.media) + '|' + !!m + '|' + busy;
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.classList.toggle('has', !!m && !busy);
+  const bg = owner === 'bg';
+  if (busy) { box.innerHTML = '<div class="busy" style="display:flex;flex-direction:row"><i class="spin"></i>שומר את הקובץ…</div>'; return; }
+  if (!m) {
+    box.innerHTML = `<button type="button" class="media-add" data-au="pick">${ICON.music}<span>${bg ? 'העלאת מנגינת רקע' : 'שיר שיתנגן בשקט מתחת לסרטון'}</span><small>${bg ? 'MP3, M4A או WAV. אפשר גם לגרור לכאן.' : 'לא חובה. MP3, M4A או WAV. אפשר גם לגרור לכאן.'}</small></button>`;
+    return;
+  }
+  box.innerHTML = `<div class="aud-row">
+    <button type="button" class="aud-play" data-au="preview" aria-label="השמעה">${MUS.prevOwner === owner ? '■' : TRI}</button>
+    <div class="aud-meta"><b title="${esc(m.name)}">${bg ? '' : 'שיר לסרטון: '}${esc(m.name || 'מנגינה')}</b><span>${m.dur ? fmtT(m.dur) : ''}</span></div>
+    <label class="aud-vol"><span>עוצמה</span><input type="range" min="0" max="100" step="1" value="${Math.round((a.vol != null ? a.vol : 0.5) * 100)}" data-au="vol" id="vol-${owner}"></label>
+    ${bg ? '' : `<label class="aud-start"><span>מתחיל מ-</span><input type="text" inputmode="numeric" value="${fmtT(a.start)}" data-au="start" id="start-${owner}" placeholder="0:00"></label>`}
+    <div class="aud-actions"><button type="button" class="mt" data-au="pick">החלפה</button><button type="button" class="mt" data-au="del">הסרה</button></div></div>`;
+}
+function probeAudio(file) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file), a = new Audio();
+    let done = false;
+    const end = (ok, d) => { if (done) return; done = true; URL.revokeObjectURL(u); ok ? res(d) : rej({ code: 'decode_audio' }); };
+    a.preload = 'metadata';
+    a.onloadedmetadata = () => end(true, isFinite(a.duration) ? a.duration : 0);
+    a.onerror = () => end(false);
+    setTimeout(() => end(true, 0), 10000);
+    a.src = u;
+  });
+}
+async function onAudFile(owner, file) {
+  if (kindOf(file) !== 'audio') { toast(errText({ code: 'kind_aud' })); return; }
+  const key = 'aud:' + owner;
+  if (S.busy.has(key)) return;
+  S.busy.set(key, 1); patchAud(audBox(owner), owner); saveState();
+  try {
+    const dur = await probeAudio(file);
+    const mid = await addMedia(file, 'audio', file.name, { dur });
+    const a = audObj(owner);
+    if (!a) { await dropMedia(mid); return; }
+    const old = a.media;
+    if (MUS.prevOwner === owner) stopPreview();
+    a.media = mid;
+    if (owner !== 'bg') a.start = 0;
+    saveGame(0);
+    await dropMedia(old);
+    updateUsage();
+    toast(owner === 'bg' ? 'מנגינת הרקע נשמרה.' : 'השיר נשמר. הוא יתנגן בשקט מתחת לסרטון.');
+  } catch (e) { toast(errText(e)); }
+  finally { S.busy.delete(key); patchAud(audBox(owner), owner); saveState(); }
+}
+function togglePreview(owner) {
+  const a = audObj(owner), m = a && a.media && M.get(a.media);
+  if (!m) return;
+  if (MUS.prev && MUS.prevOwner === owner) { stopPreview(); return; }
+  stopPreview();
+  const au = new Audio(m.url);
+  au.volume = Math.max(0.05, a.vol != null ? a.vol : 0.5);
+  const seek = () => { try { au.currentTime = owner === 'bg' ? 0 : (a.start || 0); } catch (e) {} };
+  if (au.readyState >= 1) seek(); else au.addEventListener('loadedmetadata', seek, { once: true });
+  au.onended = stopPreview;
+  au.play().catch(() => { toast('לא הצלחתי להשמיע את הקובץ.'); stopPreview(); });
+  MUS.prev = au; MUS.prevOwner = owner;
+  const box = audBox(owner), b = box && box.querySelector('[data-au="preview"]');
+  if (b) { b.textContent = '■'; b.setAttribute('aria-label', 'עצירה'); }
+}
+function stopPreview() {
+  if (MUS.prev) { MUS.prev.pause(); MUS.prev = null; }
+  MUS.prevOwner = '';
+  $$('[data-au="preview"]').forEach(b => { b.textContent = TRI; b.setAttribute('aria-label', 'השמעה'); });
+}
+function bindAudio() {
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-au]'); if (!b || b.tagName === 'INPUT') return;
+    const box = b.closest('.aud'); if (!box) return;
+    const owner = box.dataset.owner, a = audObj(owner); if (!a) return;
+    if (b.dataset.au === 'pick') { const f = $('#audFile'); f.dataset.owner = owner; f.value = ''; f.click(); }
+    else if (b.dataset.au === 'preview') togglePreview(owner);
+    else if (b.dataset.au === 'del') {
+      if (!armed(b, 'בטוח?')) return;
+      if (MUS.prevOwner === owner) stopPreview();
+      const old = a.media; a.media = null; saveGame(0); patchAud(box, owner); await dropMedia(old);
+    }
+  });
+  document.addEventListener('input', e => {
+    if (e.target.dataset.au !== 'vol') return;
+    const owner = e.target.closest('.aud').dataset.owner, a = audObj(owner); if (!a) return;
+    a.vol = Math.max(0, Math.min(1, +e.target.value / 100));
+    if (MUS.prev && MUS.prevOwner === owner) MUS.prev.volume = Math.max(0.05, a.vol);
+    saveGame();
+  });
+  document.addEventListener('change', e => {
+    if (e.target.dataset.au !== 'start') return;
+    const owner = e.target.closest('.aud').dataset.owner, a = audObj(owner); if (!a) return;
+    a.start = parseT(e.target.value); e.target.value = fmtT(a.start); saveGame(0);
+  });
+  $('#audFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) onAudFile(e.target.dataset.owner, f); });
+  const mb = $('#musicBox');
+  mb.addEventListener('dragover', e => { e.preventDefault(); mb.classList.add('over'); });
+  mb.addEventListener('dragleave', () => mb.classList.remove('over'));
+  mb.addEventListener('drop', e => { e.preventDefault(); mb.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) onAudFile('bg', f); });
+}
+
 /* ---------- links & QR ---------- */
 function playURL(groom) {
   const u = new URL('play.html', location.href);
@@ -1220,7 +1354,8 @@ const ICON = {
   trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
   play: svg('<path d="M7 5l12 7-12 7z"/>'),
   image: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>'),
-  film: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/>')
+  film: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/>'),
+  music: svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>')
 };
 function setVal(inp, v) { if (inp && document.activeElement !== inp && inp.value !== v) inp.value = v; }
 function renderSettings() { for (const inp of $$('[data-s]')) setVal(inp, G.settings[inp.dataset.s] || ''); }
@@ -1264,6 +1399,7 @@ function makeCard(id) {
     </div>
     <p class="q21-note" data-x="q21note" hidden>בסבב הזה אין רמזים. החתן שואל מהטלפון עד 21 שאלות של כן ולא, ואתה עונה במקלדת: Y כן, N לא. ניחוש נכון מסמנים ב-G, ניחוש לא נכון ב-D.</p>
     <div class="vid" data-x="vid" data-drop="vid"></div>
+    <div class="aud" data-x="song" data-owner="${id}" data-drop="song"></div>
     <div class="sil" data-x="sil" data-drop="sil">
       <canvas class="sil-cv" data-x="silcv" width="400" height="500" aria-label="תצוגה של הדמות בפוסטר"></canvas>
       <div class="sil-side">
@@ -1333,6 +1469,7 @@ function patchCard(el, r, idx, total) {
   setVal(el.querySelector('[data-f="caption"]'), r.caption);
   r.clues.forEach((c, i) => { setVal(el.querySelector(`[data-f="clue${i}"]`), c.text); patchClue(el, r, i); });
   patchVid(el, r);
+  patchAud(el.querySelector('[data-x="song"]'), r.id);
   patchSil(el, r);
   patchStatus(el, r);
   el.querySelector('[data-x="ex"]').hidden = !r.example;
@@ -1377,6 +1514,7 @@ function armed(b, label) {
 }
 function kindOf(file) {
   const t = (file.type || '').toLowerCase(), n = file.name || '';
+  if (t.startsWith('audio/') || /\.(mp3|m4a|wav|ogg|oga|aac|flac)$/i.test(n)) return 'audio';
   if (t.startsWith('video/') || /\.(mov|m4v|mp4|webm)$/i.test(n)) return 'video';
   if (t.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif|avif)$/i.test(n)) return 'image';
   return null;
@@ -1407,6 +1545,8 @@ function errText(e) {
   if (e && e.name === 'QuotaExceededError') return 'אין מספיק מקום בדפדפן לקובץ הזה. פנו מקום בדיסק ונסו שוב.';
   return ({
     decode_image: 'הדפדפן לא מצליח לפתוח את התמונה (אולי HEIC מאייפון). שמרו אותה כ-JPG ונסו שוב.',
+    decode_audio: 'הדפדפן לא מצליח לנגן את הקובץ הזה. נסו קובץ MP3.',
+    kind_aud: 'כאן מעלים קובץ שמע: MP3, M4A או WAV.',
     decode_video: 'הדפדפן הזה לא מצליח לנגן את הסרטון (אולי HEVC מאייפון). המירו אותו ל-MP4 רגיל ונסו שוב.',
     kind: 'אפשר להוסיף כאן תמונה, GIF או סרטון.',
     kind_vid: 'זה לא נראה כמו קובץ וידאו.'
@@ -1465,7 +1605,7 @@ function move(id, dir) {
 }
 async function deleteRound(id) {
   const r = findRound(id); if (!r) return;
-  const media = [r.video, r.sil && r.sil.media, ...r.clues.map(c => c.media)].filter(Boolean);
+  const media = [r.video, r.sil && r.sil.media, r.song && r.song.media, ...r.clues.map(c => c.media)].filter(Boolean);
   G.rounds = G.rounds.filter(x => x.id !== id);
   saveGame(0); syncList();
   for (const m of media) await dropMedia(m);
@@ -1562,6 +1702,7 @@ function bindEditor() {
     const id = z.closest('.tape').dataset.id;
     if (z.dataset.drop === 'clue') onClueFile(id, +z.dataset.i, f);
     else if (z.dataset.drop === 'sil') onSilFile(id, f);
+    else if (z.dataset.drop === 'song') onAudFile(id, f);
     else onVideoFile(id, f);
   });
   bindSilPointer(list);
@@ -1593,6 +1734,8 @@ async function exportBackup() {
   try {
     const ids = new Set(); if (G.settings.poster) ids.add(G.settings.poster);
     G.library.forEach(it => ids.add(it.id));
+    if (G.settings.music.media) ids.add(G.settings.music.media);
+    G.rounds.forEach(r => { if (r.song && r.song.media) ids.add(r.song.media); });
     G.rounds.forEach(r => { if (r.video) ids.add(r.video); if (r.sil && r.sil.media) ids.add(r.sil.media); r.clues.forEach(c => { if (c.media) ids.add(c.media); }); });
     const index = [], parts = []; let off = 0;
     for (const id of ids) {
@@ -1820,6 +1963,7 @@ function startShow(mode) {
     delete L.results[rid]; delete L.used[rid]; delete L.locked[rid]; delete L.letters[rid]; delete L.q[rid];
   }
   if (!L.t0) L.t0 = Date.now();
+  stopPreview();
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   stage.hidden = false; document.body.classList.add('showing');
   SH.on = true;
@@ -1841,6 +1985,7 @@ function exitShow() {
   if (SH.verdict) afterVerdict(true);
   SH.naming = false;
   pauseAll();
+  updateMusic(); songPause(300);
   stage.hidden = true; document.body.classList.remove('showing');
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
   clearInterval(SH.clock);
@@ -1865,6 +2010,77 @@ function setNetOSD(n, total) {
 function pauseAll() {
   for (const v of SH.videos.values()) v.pause();
   $$('video', scr).forEach(v => v.pause());
+}
+
+/* music during the show */
+const MUS = { on: true, bg: null, bgId: '', song: null, songKey: '', prev: null, prevOwner: '' };
+const fades = new WeakMap();
+function fadeTo(a, target, ms, done) {
+  if (!a) return;
+  clearInterval(fades.get(a));
+  target = Math.max(0, Math.min(1, target));
+  const from = a.volume, t0 = performance.now();
+  if (ms <= 0 || Math.abs(from - target) < 0.005) { a.volume = target; if (done) done(); return; }
+  const id = setInterval(() => {
+    const k = Math.min(1, (performance.now() - t0) / ms);
+    a.volume = from + (target - from) * k;
+    if (k >= 1) { clearInterval(id); fades.delete(a); if (done) done(); }
+  }, 40);
+  fades.set(a, id);
+}
+function bgAudio() {
+  const id = G.settings.music.media, m = id && M.get(id);
+  if (!m) { if (MUS.bg) { MUS.bg.pause(); MUS.bg = null; MUS.bgId = ''; } return null; }
+  if (MUS.bgId !== id) {
+    if (MUS.bg) MUS.bg.pause();
+    const a = new Audio(m.url); a.loop = true; a.volume = 0; a.preload = 'auto';
+    MUS.bg = a; MUS.bgId = id;
+  }
+  return MUS.bg;
+}
+/* a clue video playing with its own sound pushes the background music down */
+function clueSound() {
+  if (!$('#zoom').hidden && $$('#zoom video').some(v => !v.paused && !v.muted)) return true;
+  return $$('video[data-cv]', scr).some(v => !v.paused && !v.muted);
+}
+function updateMusic() {
+  const a = bgAudio(); if (!a) return;
+  let target = 0;
+  if (SH.on && MUS.on && SH.view !== 'reveal' && SH.view !== 'countdown') {
+    target = G.settings.music.vol != null ? G.settings.music.vol : 0.5;
+    if (clueSound()) target *= 0.2;
+  }
+  if (target > 0) { if (a.paused) a.play().catch(() => {}); fadeTo(a, target, 1200); }
+  else fadeTo(a, 0, SH.view === 'countdown' ? 1400 : 700, () => a.pause());
+}
+function songFor(ri) {
+  const r = SH.rounds[ri], gr = r && findRound(r.id), s = gr && gr.song, m = s && s.media && M.get(s.media);
+  if (!m) return null;
+  const key = r.id + '|' + s.media;
+  if (MUS.songKey !== key) {
+    if (MUS.song) MUS.song.pause();
+    const a = new Audio(m.url); a.loop = true; a.volume = 0; a.preload = 'auto';
+    MUS.song = a; MUS.songKey = key;
+  }
+  return { a: MUS.song, s };
+}
+function songPlay(ri, fromStart) {
+  if (!MUS.on) return;
+  const x = songFor(ri); if (!x) return;
+  if (fromStart) {
+    const seek = () => { try { x.a.currentTime = x.s.start || 0; } catch (e) {} };
+    if (x.a.readyState >= 1) seek(); else x.a.addEventListener('loadedmetadata', seek, { once: true });
+  }
+  x.a.play().catch(() => {});
+  fadeTo(x.a, x.s.vol != null ? x.s.vol : 0.25, 900);
+}
+function songPause(ms) { const a = MUS.song; if (!a || a.paused) return; fadeTo(a, 0, ms, () => a.pause()); }
+function toggleMusic() {
+  MUS.on = !MUS.on;
+  setOSD(MUS.on ? 'MUSIC ON' : 'MUSIC OFF', 1000);
+  updateMusic();
+  if (!MUS.on) songPause(400);
+  else if (SH.view === 'reveal') { const v = SH.videos.get(SH.ri); if (v && !v.paused) songPlay(SH.ri, false); }
 }
 
 /* OSD */
@@ -2119,6 +2335,8 @@ function render(dir) {
   else setView('end', endHTML(), true);
   setOSD(baseOSD());
   setCue();
+  updateMusic();
+  if (SH.view !== 'reveal') songPause(700);
 }
 function updateBoard(dir, fresh) {
   if (isQ(curRound())) { updateQ21(); return; }
@@ -2151,7 +2369,8 @@ function playClueVideo(v, withSound) {
   $$('video[data-cv]', scr).forEach(o => { if (o !== v) o.muted = true; });
   v.loop = false;
   v.muted = !withSound;
-  v.onended = () => { v.muted = true; v.loop = true; v.play().catch(() => {}); };
+  v.onended = () => { v.muted = true; v.loop = true; v.play().catch(() => {}); updateMusic(); };
+  v.onplaying = updateMusic;
   if (withSound) { try { v.currentTime = 0; } catch (e) {} }
   else v.loop = true;
   v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
@@ -2411,8 +2630,9 @@ function getVideo(ri) {
   v = document.createElement('video');
   v.preload = 'auto'; v.playsInline = true; v.src = m.url;
   const isCur = () => SH.on && SH.view === 'reveal' && SH.ri === ri;
-  v.addEventListener('play', () => { if (isCur()) { setOSD('PLAY ' + TRI); showPlayBtn(false); } });
-  v.addEventListener('pause', () => { if (isCur() && !v.ended) { setOSD('PAUSE ❚❚'); showPlayBtn(true); } });
+  v.addEventListener('play', () => { if (isCur()) { setOSD('PLAY ' + TRI); showPlayBtn(false); songPlay(ri, v.currentTime < 0.6); } });
+  v.addEventListener('pause', () => { if (isCur() && !v.ended) { setOSD('PAUSE ❚❚'); showPlayBtn(true); songPause(400); } });
+  v.addEventListener('ended', () => { if (isCur()) songPause(2200); });
   v.addEventListener('ended', () => { if (isCur()) { setOSD('STOP ■'); showPlayBtn(true, '↺'); $('#cue').textContent = SH.ri === SH.rounds.length - 1 ? '→ לסיכום' : '→ לקלטת הבאה'; } });
   v.addEventListener('error', () => { if (!isCur()) return; const tv = $('#tv'); if (!tv) return; tv.innerHTML = staticHTML('הסרטון לא נטען'); startStatic(); });
   SH.videos.set(ri, v);
@@ -2529,7 +2749,7 @@ function toggleVideo() {
   if (v.paused || v.ended) { if (v.ended) { try { v.currentTime = 0; } catch (e) {} } playV(v); } else v.pause();
   return true;
 }
-function replay() { if (SH.view !== 'reveal') return; const v = SH.videos.get(SH.ri); if (!v) return; try { v.currentTime = 0; } catch (e) {} playV(v); }
+function replay() { if (SH.view !== 'reveal') return; const v = SH.videos.get(SH.ri); if (!v) return; try { v.currentTime = 0; } catch (e) {} playV(v); songPlay(SH.ri, true); }
 function zoomClue(j) {
   if (SH.view !== 'board') return;
   const r = curRound(), c = r.clues[j]; if (!c || j >= SH.stage) return;
@@ -2538,9 +2758,10 @@ function zoomClue(j) {
   $$('video[data-cv]', scr).forEach(v => { v.muted = true; });
   z.innerHTML = `<figure class="zpol">${m ? (m.kind === 'video' ? `<video src="${m.url}" playsinline autoplay></video>` : `<img src="${m.url}" alt="רמז ${j + 1}">`) : ''}${c.text ? `<figcaption class="${m ? '' : 'big'}">${esc(c.text)}</figcaption>` : ''}</figure>`;
   z.hidden = false;
-  const zv = z.querySelector('video'); if (zv) zv.play().catch(() => { zv.muted = true; zv.play().catch(() => {}); });
+  const zv = z.querySelector('video');
+  if (zv) { zv.onplaying = updateMusic; zv.onended = updateMusic; zv.play().catch(() => { zv.muted = true; zv.play().catch(() => {}); }); }
 }
-function closeZoom() { const z = $('#zoom'); if (!z.hidden) { const zv = z.querySelector('video'); if (zv) zv.pause(); z.hidden = true; z.innerHTML = ''; } }
+function closeZoom() { const z = $('#zoom'); if (!z.hidden) { const zv = z.querySelector('video'); if (zv) zv.pause(); z.hidden = true; z.innerHTML = ''; updateMusic(); } }
 function toggleQR() {
   const q = $('#qrCorner');
   if (!q.hidden) { q.hidden = true; return; }
@@ -2593,6 +2814,7 @@ window.addEventListener('keydown', e => {
   else if (c === 'KeyF') toggleFs();
   else if (c === 'KeyR') replay();
   else if (c === 'KeyM') { SH.sound = !SH.sound; setOSD(SH.sound ? 'SOUND ON' : 'MUTE', 1000); }
+  else if (c === 'KeyB') toggleMusic();
   else if (/^Digit[1-3]$/.test(c)) zoomClue(+c.slice(5) - 1);
   else handled = false;
   if (handled) e.preventDefault();
@@ -2608,7 +2830,7 @@ stage.addEventListener('click', e => {
 $('#hostbar').addEventListener('click', e => {
   const b = e.target.closest('[data-h]'); if (!b) return;
   b.blur();
-  ({ exit: exitShow, prev, next, type: openTyper, right: markRight, wrong: markWrong, qr: toggleQR, fs: toggleFs, yes: () => q21Answer('yes'), no: () => q21Answer('no'), undo: q21Undo })[b.dataset.h]();
+  ({ exit: exitShow, prev, next, type: openTyper, right: markRight, wrong: markWrong, qr: toggleQR, fs: toggleFs, yes: () => q21Answer('yes'), no: () => q21Answer('no'), undo: q21Undo, music: toggleMusic })[b.dataset.h]();
 });
 let idleT = 0;
 function wakeBar() {
@@ -2633,7 +2855,9 @@ async function boot() {
     showNotice('הדפדפן לא מאפשר לשמור נתונים בדף הזה (אולי חלון גלישה בסתר). פתחו את הדף בחלון רגיל של Chrome.');
   }
   bindEditor();
+  bindAudio();
   renderSettings();
+  patchAud($('#musicBox'), 'bg');
   renderPosterBox();
   renderLibrary();
   syncList();
